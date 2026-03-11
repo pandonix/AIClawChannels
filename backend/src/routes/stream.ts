@@ -2,10 +2,12 @@ import type { FastifyInstance } from "fastify";
 
 import type { AnySseEvent } from "@contracts";
 
-import type { MockGateway } from "../mock/mock-gateway.js";
+import { EventBus } from "../event-bus/event-bus.js";
+import { SessionService } from "../sessions/session-service.js";
 
 interface StreamRouteDeps {
-  mockGateway: MockGateway;
+  eventBus: EventBus;
+  sessionService: SessionService;
 }
 
 function writeEvent(response: NodeJS.WritableStream, event: AnySseEvent): void {
@@ -23,7 +25,7 @@ export async function registerStreamRoutes(
     }
 
     try {
-      deps.mockGateway.getHistory(request.query.sessionId);
+      await deps.sessionService.getSessionRecord(request.query.sessionId);
     } catch (error) {
       return reply.status(404).send({ error: (error as Error).message });
     }
@@ -34,7 +36,7 @@ export async function registerStreamRoutes(
     reply.raw.flushHeaders?.();
 
     reply.raw.write(": connected\n\n");
-    const unsubscribe = deps.mockGateway.subscribe(request.query.sessionId, (event) => {
+    const unsubscribe = await deps.eventBus.subscribe(request.query.sessionId, (event) => {
       writeEvent(reply.raw, event);
     });
     const heartbeat = setInterval(() => {
@@ -49,4 +51,3 @@ export async function registerStreamRoutes(
     return reply;
   });
 }
-
