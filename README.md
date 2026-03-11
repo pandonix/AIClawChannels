@@ -70,11 +70,21 @@ npm run dev:frontend
 - backend: `http://localhost:3001`
 - backend 以 `MOCK_GATEWAY=true` 运行，使用内置 mock runtime
 
+如需连接真实 Gateway：
+
+```bash
+MOCK_GATEWAY=false \
+GATEWAY_OPERATOR_TOKEN=your_gateway_token \
+npm run dev:backend
+```
+
+如果本地 Gateway 开启了 token 鉴权，`GATEWAY_OPERATOR_TOKEN` 必填。
+
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `MOCK_GATEWAY` | `true` | `false` 时切换到真实 Gateway runtime（T1.A3 完成后生效） |
+| `MOCK_GATEWAY` | `true` | `false` 时切换到真实 Gateway runtime |
 | `GATEWAY_WS_URL` | `ws://127.0.0.1:18789` | OpenClaw Gateway WebSocket 地址 |
 | `GATEWAY_OPERATOR_TOKEN` | — | operator token 鉴权 |
 | `GATEWAY_OPERATOR_PASSWORD` | — | operator password 鉴权 |
@@ -86,8 +96,9 @@ npm run dev:frontend
 
 ## 当前状态
 
-MVP 核心链路已完成联调（mock runtime）：
+MVP 核心链路已完成联调：
 
+- mock runtime：
 - 会话列表加载、创建、重命名
 - 聊天历史加载、发送消息
 - SSE 流式事件：`agent.event`、`message.delta`、`message.final`
@@ -95,7 +106,13 @@ MVP 核心链路已完成联调（mock runtime）：
 - 前端在重连恢复后补拉 history，兜底 `message.final` 丢失场景
 - 停止操作触发 `run.aborted`
 
-**下一步：T1.A3** — 实现 `GatewayRuntime` 与 `GatewayEventSource`，让 `app.ts` 按 `MOCK_GATEWAY` 切换到真实 OpenClaw Gateway。
+- 真实 Gateway（2026-03-11，本地 OpenClaw Gateway）：
+- `MOCK_GATEWAY=false` 时可完成真实握手、鉴权与会话水合
+- `GET /api/sessions`、`GET /api/chat/history`、`POST /api/chat/send`、`POST /api/chat/abort` 已打通
+- SSE 已确认收到 `agent.event`、`message.final`、`run.aborted`
+- 针对 Gateway `chat state=final` 不携带正文的情况，后端已在 final 到达时回补 `chat.history` 获取最终消息文本
+
+当前剩余方向主要是持久化、认证和部署样板，不再是 Gateway runtime 接线。
 
 ## 契约与文档
 
