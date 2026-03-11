@@ -2,6 +2,10 @@
 
 基于 OpenClaw Gateway 构建的自定义 Web Channels 项目。
 
+## 快速开始
+
+参见 [Quickstart](docs/quickstart.md)。
+
 ## 架构概览
 
 ```text

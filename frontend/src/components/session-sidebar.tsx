@@ -78,7 +78,7 @@ export function SessionSidebar({
         </button>
       </div>
 
-      <section className="sidebar-section">
+      <section className="sidebar-section sidebar-section--sessions">
         <div className="section-heading">
           <span>Sessions</span>
           <span>{sessions.length}</span>

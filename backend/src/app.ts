@@ -1,3 +1,9 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../../.env") });
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 
