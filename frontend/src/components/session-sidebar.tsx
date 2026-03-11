@@ -7,6 +7,10 @@ interface SessionSidebarProps {
   onSelectSession: (sessionId: string) => void;
   onRefresh: () => void;
   errorMessage: string | null;
+  newSessionName: string;
+  onNewSessionNameChange: (value: string) => void;
+  onCreateSession: () => void;
+  isCreatingSession: boolean;
 }
 
 function formatTimestamp(value: string): string {
@@ -24,7 +28,11 @@ export function SessionSidebar({
   selectedSessionId,
   onSelectSession,
   onRefresh,
-  errorMessage
+  errorMessage,
+  newSessionName,
+  onNewSessionNameChange,
+  onCreateSession,
+  isCreatingSession
 }: SessionSidebarProps) {
   return (
     <aside className="workspace-sidebar">
@@ -38,8 +46,32 @@ export function SessionSidebar({
       </div>
 
       <div className="sidebar-toolbar">
-        <button type="button" className="primary-button">
-          New Session
+        <div className="toolbar-form">
+          <label className="toolbar-form__label" htmlFor="new-session-name">
+            New session
+          </label>
+          <input
+            id="new-session-name"
+            className="text-input text-input--dark"
+            type="text"
+            value={newSessionName}
+            placeholder="会话标题"
+            onChange={(event) => onNewSessionNameChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onCreateSession();
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={onCreateSession}
+          disabled={isCreatingSession || !newSessionName.trim()}
+        >
+          {isCreatingSession ? "Creating..." : "New Session"}
         </button>
         <button type="button" className="ghost-button" onClick={onRefresh}>
           Refresh
@@ -83,10 +115,10 @@ export function SessionSidebar({
       <section className="sidebar-section sidebar-section--footer">
         <div className="section-heading">
           <span>Track</span>
-          <span>T1.D1</span>
+          <span>T1.D2</span>
         </div>
         <p className="sidebar-copy">
-          Current scope: layout, navigation shell, and state slots for chat history and composer.
+          Current scope: session list, create session, rename title, and current session switching.
         </p>
       </section>
     </aside>

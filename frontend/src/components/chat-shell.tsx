@@ -2,6 +2,10 @@ import type { SessionSummary } from "@contracts";
 
 interface ChatShellProps {
   session: SessionSummary | null;
+  titleDraft: string;
+  onTitleDraftChange: (value: string) => void;
+  onRenameSession: () => void;
+  isRenamingSession: boolean;
 }
 
 const skeletonMessages = [
@@ -23,13 +27,49 @@ function roleLabel(role: "user" | "assistant"): string {
   return role === "user" ? "User" : "Assistant";
 }
 
-export function ChatShell({ session }: ChatShellProps) {
+export function ChatShell({
+  session,
+  titleDraft,
+  onTitleDraftChange,
+  onRenameSession,
+  isRenamingSession
+}: ChatShellProps) {
   return (
     <section className="chat-shell">
       <header className="chat-header">
-        <div>
+        <div className="chat-header__title-block">
           <p className="chat-header__eyebrow">Workspace</p>
           <h2>{session?.title ?? "Select a session"}</h2>
+          <div className="title-editor">
+            <label className="title-editor__label" htmlFor="session-title">
+              Rename current session
+            </label>
+            <div className="title-editor__controls">
+              <input
+                id="session-title"
+                className="text-input"
+                type="text"
+                value={titleDraft}
+                placeholder="新的会话标题"
+                disabled={!session}
+                onChange={(event) => onTitleDraftChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    onRenameSession();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="ghost-button ghost-button--light"
+                onClick={onRenameSession}
+                disabled={!session || isRenamingSession || !titleDraft.trim()}
+              >
+                {isRenamingSession ? "Saving..." : "Save Title"}
+              </button>
+            </div>
+          </div>
         </div>
         <div className="chat-header__status">
           <span className="status-pill">Mock backend connected</span>

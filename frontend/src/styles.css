@@ -146,6 +146,23 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.toolbar-form {
+  display: grid;
+  flex: 1;
+  gap: 0.35rem;
+}
+
+.toolbar-form__label,
+.title-editor__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.toolbar-form__label {
+  color: rgba(247, 243, 236, 0.62);
+}
+
 .primary-button,
 .ghost-button {
   border-radius: 999px;
@@ -178,9 +195,42 @@ button:disabled {
   border-color: rgba(255, 255, 255, 0.46);
 }
 
+.ghost-button--light {
+  border-color: rgba(31, 38, 47, 0.14);
+  color: var(--bg-ink);
+}
+
+.ghost-button--light:hover:not(:disabled) {
+  border-color: rgba(31, 38, 47, 0.28);
+}
+
 .ghost-button:disabled,
 .primary-button:disabled {
   opacity: 0.45;
+}
+
+.text-input {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 38, 47, 0.12);
+  border-radius: 14px;
+  color: var(--bg-ink);
+  min-width: 0;
+  padding: 0.78rem 0.95rem;
+  width: 100%;
+}
+
+.text-input::placeholder {
+  color: rgba(31, 38, 47, 0.42);
+}
+
+.text-input--dark {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f7f3ec;
+}
+
+.text-input--dark::placeholder {
+  color: rgba(247, 243, 236, 0.5);
 }
 
 .sidebar-section {
@@ -287,6 +337,27 @@ button:disabled {
   flex-wrap: wrap;
   gap: 0.6rem;
   justify-content: flex-end;
+}
+
+.chat-header__title-block {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.title-editor {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 32rem;
+}
+
+.title-editor__label {
+  color: rgba(31, 38, 47, 0.58);
+}
+
+.title-editor__controls {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .status-pill {
@@ -457,6 +528,10 @@ button:disabled {
   .composer-shell__header,
   .composer-shell__actions {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .title-editor__controls {
     flex-direction: column;
   }
 }
