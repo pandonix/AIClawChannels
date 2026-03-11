@@ -136,3 +136,10 @@
 
 完成后，其他 worktree 就可以基于稳定目录和契约并行推进。
 
+## 10. 当前认领状态
+
+- `feat/backend-gateway-core`：已完成 `T1.A1`
+- `feat/backend-api-session`：已完成 `T1.B2 + T1.B1 + T1.B3`
+- `feat/backend-sse-events`：已完成 `T1.C1 + T1.C2`
+- `feat/frontend-chat-shell`：由其他 worktree 推进前端壳与主界面
+- `feat/frontend-streaming`：当前认领并推进 `T1.E1`

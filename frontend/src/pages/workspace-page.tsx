@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { listSessions } from "../api/client";
 import { ChatShell } from "../components/chat-shell";
+import { useChatStream } from "../hooks/use-chat-stream";
 import { SessionSidebar } from "../components/session-sidebar";
 
 export function WorkspacePage() {
@@ -29,6 +30,7 @@ export function WorkspacePage() {
   }, [selectedSessionId, sessions]);
 
   const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
+  const streamState = useChatStream(selectedSessionId);
   const errorMessage = sessionsQuery.isError
     ? (sessionsQuery.error as Error).message
     : null;
@@ -48,7 +50,7 @@ export function WorkspacePage() {
           }}
           errorMessage={errorMessage}
         />
-        <ChatShell session={selectedSession} />
+        <ChatShell session={selectedSession} streamState={streamState} />
       </div>
     </main>
   );
