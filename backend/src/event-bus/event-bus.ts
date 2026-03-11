@@ -5,6 +5,7 @@ import type { BackendEventSource, EventBusListener } from "./types.js";
 
 interface SessionSubscription {
   listeners: Set<EventBusListener>;
+  closeConnections: Set<() => void>;
   teardown: (() => void) | null;
   sessionKey: string;
 }
@@ -24,13 +25,26 @@ export class EventBus {
     this.eventSource = options.eventSource;
   }
 
-  async subscribe(sessionId: string, listener: EventBusListener): Promise<() => void> {
+  disconnectSession(sessionId: string): void {
+    const subscription = this.subscriptions.get(sessionId);
+    if (!subscription) {
+      return;
+    }
+    subscription.teardown?.();
+    this.subscriptions.delete(sessionId);
+    for (const close of subscription.closeConnections) {
+      close();
+    }
+  }
+
+  async subscribe(sessionId: string, listener: EventBusListener, closeConnection?: () => void): Promise<() => void> {
     const session = await this.sessionService.getSessionRecord(sessionId);
     let subscription = this.subscriptions.get(session.id);
 
     if (!subscription) {
       subscription = {
         listeners: new Set(),
+        closeConnections: new Set(),
         teardown: null,
         sessionKey: session.sessionKey
       };
@@ -41,6 +55,9 @@ export class EventBus {
     }
 
     subscription.listeners.add(listener);
+    if (closeConnection) {
+      subscription.closeConnections.add(closeConnection);
+    }
 
     return () => {
       const current = this.subscriptions.get(session.id);
@@ -49,6 +66,9 @@ export class EventBus {
       }
 
       current.listeners.delete(listener);
+      if (closeConnection) {
+        current.closeConnections.delete(closeConnection);
+      }
       if (current.listeners.size > 0) {
         return;
       }

@@ -30,15 +30,21 @@ export async function registerStreamRoutes(
       return reply.status(404).send({ error: (error as Error).message });
     }
 
+    const origin = request.headers.origin;
+    if (origin) {
+      reply.raw.setHeader("Access-Control-Allow-Origin", origin);
+    }
     reply.raw.setHeader("Content-Type", "text/event-stream");
     reply.raw.setHeader("Cache-Control", "no-cache");
     reply.raw.setHeader("Connection", "keep-alive");
     reply.raw.flushHeaders?.();
 
     reply.raw.write(": connected\n\n");
-    const unsubscribe = await deps.eventBus.subscribe(request.query.sessionId, (event) => {
-      writeEvent(reply.raw, event);
-    });
+    const unsubscribe = await deps.eventBus.subscribe(
+      request.query.sessionId,
+      (event) => { writeEvent(reply.raw, event); },
+      () => { reply.raw.destroy(); }
+    );
     const heartbeat = setInterval(() => {
       reply.raw.write(": heartbeat\n\n");
     }, 15000);

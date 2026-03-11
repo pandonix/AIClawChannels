@@ -7,6 +7,7 @@ import { EventBus } from "./event-bus/event-bus.js";
 import { MockGatewayEventSource } from "./event-bus/mock-event-source.js";
 import { buildMockGateway } from "./mock/mock-gateway.js";
 import { registerChatRoutes } from "./routes/chat.js";
+import { registerDevRoutes } from "./routes/dev.js";
 import { registerSessionRoutes } from "./routes/sessions.js";
 import { registerStreamRoutes } from "./routes/stream.js";
 import { MockRuntime } from "./runtime/mock-runtime.js";
@@ -46,6 +47,10 @@ async function start(): Promise<void> {
   await registerSessionRoutes(app, { sessionService });
   await registerChatRoutes(app, { chatService });
   await registerStreamRoutes(app, { eventBus, sessionService });
+
+  if (env.nodeEnv !== "production") {
+    await registerDevRoutes(app, { eventBus });
+  }
 
   await app.listen({
     host: "0.0.0.0",
