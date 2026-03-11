@@ -25,6 +25,7 @@ Frontend Web UI <-> Custom Backend (HTTP/SSE) <-> OpenClaw Gateway (WS)
 - `packages/contracts/` 共享 DTO 与 SSE 事件类型
 - `docs/api-contract.md` 契约冻结文档
 - mock backend provider，用于前端独立开发
+- `backend/src/gateway/` 的 Gateway client 基础骨架与 probe 入口
 - `todo.md` 中的 worktree 分工与协作规则
 
 后续 worktree 继续负责：
@@ -74,6 +75,12 @@ npm run dev:frontend
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:3001`
 - backend 以 `MOCK_GATEWAY=true` 运行
+
+如果要验证真实 Gateway 握手：
+
+```bash
+MOCK_GATEWAY=false npm run gateway:probe --workspace backend
+```
 
 ## 契约与文档
 
