@@ -107,10 +107,14 @@ export class GatewayClient extends EventEmitter {
     });
     this.ws.on("close", (code: number, reason: Buffer) => {
       const reasonText = rawDataToString(reason);
+      const hadHello = this.helloOk !== null;
       this.ws = null;
+      this.helloOk = null;
+      this.connectSent = false;
+      this.connectNonce = null;
       const error = new Error(`gateway closed (${code}): ${reasonText}`);
       this.flushPending(error);
-      if (!this.helloOk) {
+      if (!hadHello) {
         this.failConnect(error);
       }
       this.emit("close", {
@@ -123,7 +127,7 @@ export class GatewayClient extends EventEmitter {
       if (!this.helloOk) {
         this.failConnect(normalized);
       }
-      this.emit("error", normalized);
+      this.emitError(normalized);
     });
 
     return this.connectPromise;
@@ -199,7 +203,7 @@ export class GatewayClient extends EventEmitter {
     try {
       parsed = JSON.parse(raw);
     } catch (error) {
-      this.emit("error", toError(error));
+      this.emitError(toError(error));
       return;
     }
 
@@ -314,6 +318,12 @@ export class GatewayClient extends EventEmitter {
     this.connectPromise = null;
     this.connectResolve = null;
     this.connectReject = null;
+  }
+
+  private emitError(error: Error): void {
+    if (this.listenerCount("error") > 0) {
+      this.emit("error", error);
+    }
   }
 
   private flushPending(error: Error): void {

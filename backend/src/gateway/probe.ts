@@ -1,9 +1,9 @@
 import { loadEnv } from "../config/env.js";
-import { GatewayClient } from "./client.js";
+import { GatewayConnectionManager } from "./connection-manager.js";
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  const client = new GatewayClient({
+  const gateway = new GatewayConnectionManager({
     url: env.gatewayWsUrl,
     token: env.gatewayOperatorToken,
     password: env.gatewayOperatorPassword,
@@ -17,7 +17,11 @@ async function main(): Promise<void> {
     deviceIdentityPath: env.gatewayDeviceIdentityPath
   });
 
-  client.on("event", (event) => {
+  gateway.on("state", (state) => {
+    console.log(`[gateway:state] ${state.phase} attempt=${state.attempt}`);
+  });
+
+  gateway.on("event", (event) => {
     if (event.event === "tick") {
       return;
     }
@@ -25,7 +29,7 @@ async function main(): Promise<void> {
   });
 
   try {
-    const hello = await client.connect();
+    const hello = await gateway.connect();
     console.log(
       JSON.stringify(
         {
@@ -43,10 +47,10 @@ async function main(): Promise<void> {
       )
     );
 
-    const health = await client.request<unknown>("health", {});
+    const health = await gateway.request<unknown>("health", {});
     console.log(JSON.stringify(health, null, 2));
   } finally {
-    await client.close();
+    await gateway.close();
   }
 }
 
@@ -54,4 +58,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

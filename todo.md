@@ -138,7 +138,7 @@
 
 ## 10. 当前认领状态
 
-- `feat/backend-gateway-core`：已完成 `T1.A1`，`T1.A2` 主体实现已进入最后两步：等待合适窗口合入 `integration/mvp`，并在联调中验证其对 SSE / 流式链路稳定性的提升
+- `feat/backend-gateway-core`：已完成 `T1.A1 + T1.A2`，并已合入 `integration/mvp`
 - `feat/backend-api-session`：已完成 `T1.B2 + T1.B1 + T1.B3`
 - `feat/backend-sse-events`：已完成 `T1.C1 + T1.C2`
 - `feat/frontend-chat-shell`：已完成 `T1.D1 + T1.D2 + T1.D3`，并在 `integration/mvp` 收口历史消息、发送、停止与流式展示
@@ -147,6 +147,5 @@
 
 ## 11. 当前剩余工作
 
-- 第一优先级：将 `feat/backend-gateway-core` 的 `T1.A2` 合入 `integration/mvp`
-- 第二优先级：在 `integration/mvp` 上完成一次端到端联调，重点验证断线重连后 SSE 订阅、流式消息与停止操作是否仍然稳定
-- 第三优先级：待 MVP 主链路稳定后，再决定是否启动 `T2.F1 + T2.F2 + T2.F3`
+- 第一优先级：在 `integration/mvp` 上完成一次端到端联调，重点验证断线重连后 SSE 订阅、流式消息与停止操作是否仍然稳定
+- 第二优先级：补齐 MVP 联调结论与回归清单，不启动 `T2.F1 + T2.F2 + T2.F3`
