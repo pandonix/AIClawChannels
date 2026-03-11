@@ -1,11 +1,14 @@
 import type { SessionSummary } from "@contracts";
 
+import type { ChatStreamState } from "../hooks/use-chat-stream";
+
 interface ChatShellProps {
   session: SessionSummary | null;
   titleDraft: string;
   onTitleDraftChange: (value: string) => void;
   onRenameSession: () => void;
   isRenamingSession: boolean;
+  streamState: ChatStreamState;
 }
 
 const skeletonMessages = [
@@ -27,13 +30,26 @@ function roleLabel(role: "user" | "assistant"): string {
   return role === "user" ? "User" : "Assistant";
 }
 
+function formatStreamStamp(value: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(new Date(value));
+}
+
 export function ChatShell({
   session,
   titleDraft,
   onTitleDraftChange,
   onRenameSession,
-  isRenamingSession
+  isRenamingSession,
+  streamState
 }: ChatShellProps) {
+  const hasLiveContent =
+    streamState.finalMessages.length > 0 ||
+    streamState.streamingRuns.length > 0 ||
+    streamState.notices.length > 0;
   return (
     <section className="chat-shell">
       <header className="chat-header">
@@ -73,7 +89,12 @@ export function ChatShell({
         </div>
         <div className="chat-header__status">
           <span className="status-pill">Mock backend connected</span>
-          <span className="status-pill status-pill--muted">SSE pending</span>
+          <span className={`status-pill${streamState.connectionState === "open" ? "" : " status-pill--muted"}`}>
+            SSE {streamState.connectionState}
+          </span>
+          {streamState.streamError ? (
+            <span className="status-pill status-pill--error">{streamState.streamError}</span>
+          ) : null}
         </div>
       </header>
 
@@ -95,16 +116,58 @@ export function ChatShell({
       <section className="message-stage">
         <div className="message-stage__rail">
           <span>Timeline</span>
-          <span>History hook reserved</span>
+          <span>{streamState.agentEvents.length} agent events</span>
+          {streamState.agentEvents.length > 0 ? (
+            <div className="event-stack">
+              {streamState.agentEvents.map((event) => (
+                <article key={`${event.runId}-${event.createdAt}`} className="event-card">
+                  <strong>{event.stage}</strong>
+                  <span>{event.message}</span>
+                  <time>{formatStreamStamp(event.createdAt)}</time>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <span>Waiting for live agent events</span>
+          )}
         </div>
         <div className="message-stage__list">
-          {skeletonMessages.map((message) => (
+          {hasLiveContent
+            ? null
+            : skeletonMessages.map((message) => (
+                <article key={message.id} className={`message-card message-card--${message.role}`}>
+                  <div className="message-card__meta">
+                    <span>{roleLabel(message.role)}</span>
+                    <span>{message.title}</span>
+                  </div>
+                  <p>{message.body}</p>
+                </article>
+              ))}
+          {streamState.streamingRuns.map((run) => (
+            <article key={run.runId} className="message-card message-card--assistant message-card--live">
+              <div className="message-card__meta">
+                <span>Assistant</span>
+                <span>Streaming {run.runId}</span>
+              </div>
+              <p>{run.text || "Waiting for delta..."}</p>
+            </article>
+          ))}
+          {streamState.finalMessages.map((message) => (
             <article key={message.id} className={`message-card message-card--${message.role}`}>
               <div className="message-card__meta">
-                <span>{roleLabel(message.role)}</span>
-                <span>{message.title}</span>
+                <span>{roleLabel(message.role as "user" | "assistant")}</span>
+                <span>{formatStreamStamp(message.createdAt)}</span>
               </div>
-              <p>{message.body}</p>
+              <p>{message.text}</p>
+            </article>
+          ))}
+          {streamState.notices.map((notice) => (
+            <article key={`${notice.type}-${notice.runId}-${notice.createdAt}`} className="message-card message-card--notice">
+              <div className="message-card__meta">
+                <span>{notice.type === "error" ? "Run error" : "Run aborted"}</span>
+                <span>{notice.runId}</span>
+              </div>
+              <p>{notice.message}</p>
             </article>
           ))}
         </div>
@@ -127,7 +190,7 @@ export function ChatShell({
           disabled
         />
         <div className="composer-shell__actions">
-          <span>Contract ready: `POST /api/chat/send` + `POST /api/chat/abort`</span>
+          <span>Contract ready: `POST /api/chat/send`, `POST /api/chat/abort`, `GET /api/chat/stream`</span>
           <button type="button" className="primary-button" disabled>
             Send
           </button>

@@ -139,5 +139,7 @@
 ## 10. 当前认领状态
 
 - `feat/backend-gateway-core`：已完成 `T1.A1` 首版骨架并合入 `integration/mvp`
-- `feat/backend-api-session`：进行中，认领 `T1.B2 + T1.B1 + T1.B3`
-- `feat/frontend-chat-shell`：已完成 `T1.D1`，当前认领并进行中 `T1.D2`
+- `feat/backend-api-session`：已完成 `T1.B2 + T1.B1 + T1.B3`
+- `feat/backend-sse-events`：已完成 `T1.C1 + T1.C2`
+- `feat/frontend-chat-shell`：已合入前端壳，当前继续推进 `T1.D2 + T1.D3`
+- `feat/frontend-streaming`：已完成 `T1.E1` 首版，并将流式展示能力合流到 `integration/mvp`

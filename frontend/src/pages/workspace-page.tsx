@@ -4,6 +4,7 @@ import type { ListSessionsResponse } from "@contracts";
 
 import { createSession, listSessions, patchSession } from "../api/client";
 import { ChatShell } from "../components/chat-shell";
+import { useChatStream } from "../hooks/use-chat-stream";
 import { SessionSidebar } from "../components/session-sidebar";
 
 export function WorkspacePage() {
@@ -66,11 +67,10 @@ export function WorkspacePage() {
   }, [selectedSessionId, sessions]);
 
   const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
-
   useEffect(() => {
     setTitleDraft(selectedSession?.title ?? "");
   }, [selectedSession?.id, selectedSession?.title]);
-
+  const streamState = useChatStream(selectedSessionId);
   const errorMessage = sessionsQuery.isError
     ? (sessionsQuery.error as Error).message
     : null;
@@ -135,6 +135,7 @@ export function WorkspacePage() {
             void handleRenameSession();
           }}
           isRenamingSession={renameSessionMutation.isPending}
+          streamState={streamState}
         />
       </div>
     </main>
