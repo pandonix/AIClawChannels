@@ -18,60 +18,16 @@ MVP 核心链路已完成，所有并行开发分支已合并到 master。
 - 新增 `EventBus.disconnectSession` 真正关闭 HTTP 连接（`reply.raw.destroy`）
 - `e2e/` workspace：`@playwright/test`，`npm run test:e2e` 可直接运行
 
+真实 Gateway 联调已完成（2026-03-11，OpenClaw Gateway）：
+
+- `MOCK_GATEWAY=false` 时，后端可连接本地 OpenClaw Gateway
+- 会话加载、历史消息、发送消息、停止操作已通过真实链路验证
+- SSE 已确认可收到 `agent.event`、`message.final`、`run.aborted`
+- 对真实 Gateway 做了兼容修补：`platform` 握手参数、agent 前缀 `sessionKey` 映射、`message.final` 空文本时回补 `chat.history`
+
 ---
 
 ## 剩余工作
-
-### P1 — T1.A3：真实 Gateway runtime 接线
-
-目标：让后端可在 `MOCK_GATEWAY=false` 时连接本地 OpenClaw Gateway，完成真实链路联调入口。
-
-需要新增：
-
-- `backend/src/runtime/gateway-runtime.ts` — 实现 `BackendRuntime` 接口，调用 `GatewayConnectionManager`
-- `backend/src/event-bus/gateway-event-source.ts` — 实现 `BackendEventSource` 接口，订阅 Gateway WS 事件
-- `backend/src/app.ts` — 按 `env.mockGateway` 切换装配 `MockRuntime` 或 `GatewayRuntime`
-
-验收标准：
-
-- `MOCK_GATEWAY=true`（默认）时，行为与现在完全一致
-- `MOCK_GATEWAY=false` 时，后端可连接本地 OpenClaw Gateway
-- 会话加载、发送消息、SSE 流式事件、停止操作可通过真实 Gateway 贯通
-- Gateway 断线重连后，后端与前端状态可恢复到可继续联调的状态
-
-依赖：无（`GatewayConnectionManager` 已完整实现，`BackendRuntime` 接口已定义）
-
----
-
-### P3 — T2.F：持久化与认证（暂缓）
-
-待 MVP 真实 Gateway 联调稳定后再开启：
-
-- T2.F1：SQLite 持久化（会话、消息）
-- T2.F2：用户认证与隔离
-- T2.F3：部署样板（Docker、环境配置）
-
-
-### P1 — T1.A3：真实 Gateway runtime 接线
-
-目标：让后端可在 `MOCK_GATEWAY=false` 时连接本地 OpenClaw Gateway，完成真实链路联调入口。
-
-需要新增：
-
-- `backend/src/runtime/gateway-runtime.ts` — 实现 `BackendRuntime` 接口，调用 `GatewayConnectionManager`
-- `backend/src/event-bus/gateway-event-source.ts` — 实现 `BackendEventSource` 接口，订阅 Gateway WS 事件
-- `backend/src/app.ts` — 按 `env.mockGateway` 切换装配 `MockRuntime` 或 `GatewayRuntime`
-
-验收标准：
-
-- `MOCK_GATEWAY=true`（默认）时，行为与现在完全一致
-- `MOCK_GATEWAY=false` 时，后端可连接本地 OpenClaw Gateway
-- 会话加载、发送消息、SSE 流式事件、停止操作可通过真实 Gateway 贯通
-- Gateway 断线重连后，后端与前端状态可恢复到可继续联调的状态
-
-依赖：无（`GatewayConnectionManager` 已完整实现，`BackendRuntime` 接口已定义）
-
----
 
 ### P3 — T2.F：持久化与认证（暂缓）
 
