@@ -417,6 +417,10 @@ button:disabled {
   padding-right: 1rem;
 }
 
+.message-stage__status {
+  color: var(--accent-deep);
+}
+
 .message-stage__list {
   display: grid;
   gap: 1rem;
@@ -447,6 +451,20 @@ button:disabled {
 
 .message-card p {
   margin: 0;
+}
+
+.message-card--pending {
+  border-style: dashed;
+}
+
+.empty-state {
+  color: rgba(31, 38, 47, 0.62);
+  margin: 0;
+  padding: 0.5rem 0.2rem;
+}
+
+.empty-state--error {
+  color: #8a1c14;
 }
 
 .composer-shell {

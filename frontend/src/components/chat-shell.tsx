@@ -1,4 +1,4 @@
-import type { SessionSummary } from "@contracts";
+import type { ChatMessage, SessionSummary } from "@contracts";
 
 interface ChatShellProps {
   session: SessionSummary | null;
@@ -6,25 +6,28 @@ interface ChatShellProps {
   onTitleDraftChange: (value: string) => void;
   onRenameSession: () => void;
   isRenamingSession: boolean;
+  messages: ChatMessage[];
+  isLoadingHistory: boolean;
+  historyErrorMessage: string | null;
+  composerValue: string;
+  onComposerChange: (value: string) => void;
+  onSendMessage: () => void;
+  isSendingMessage: boolean;
+  activeRunId: string | null;
+  runStateLabel: string | null;
+  onAbortRun: () => void;
+  isAbortingRun: boolean;
 }
-
-const skeletonMessages = [
-  {
-    id: "user-outline",
-    role: "user" as const,
-    title: "User prompt",
-    body: "A selected session will load message history here in T1.D3."
-  },
-  {
-    id: "assistant-outline",
-    role: "assistant" as const,
-    title: "Assistant response",
-    body: "Streaming output, agent events, and stop controls remain scoped to later tracks."
-  }
-];
 
 function roleLabel(role: "user" | "assistant"): string {
   return role === "user" ? "User" : "Assistant";
+}
+
+function formatMessageTime(value: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
 export function ChatShell({
@@ -32,7 +35,18 @@ export function ChatShell({
   titleDraft,
   onTitleDraftChange,
   onRenameSession,
-  isRenamingSession
+  isRenamingSession,
+  messages,
+  isLoadingHistory,
+  historyErrorMessage,
+  composerValue,
+  onComposerChange,
+  onSendMessage,
+  isSendingMessage,
+  activeRunId,
+  runStateLabel,
+  onAbortRun,
+  isAbortingRun
 }: ChatShellProps) {
   return (
     <section className="chat-shell">
@@ -95,18 +109,36 @@ export function ChatShell({
       <section className="message-stage">
         <div className="message-stage__rail">
           <span>Timeline</span>
-          <span>History hook reserved</span>
+          <span>{session ? `${messages.length} messages` : "No session selected"}</span>
+          {runStateLabel ? <span className="message-stage__status">{runStateLabel}</span> : null}
         </div>
         <div className="message-stage__list">
-          {skeletonMessages.map((message) => (
+          {!session ? <p className="empty-state">Select a session to inspect chat history.</p> : null}
+          {session && isLoadingHistory ? <p className="empty-state">Loading history...</p> : null}
+          {session && historyErrorMessage ? (
+            <p className="empty-state empty-state--error">{historyErrorMessage}</p>
+          ) : null}
+          {session && !isLoadingHistory && !historyErrorMessage && !messages.length ? (
+            <p className="empty-state">No messages yet. Start the conversation from the composer.</p>
+          ) : null}
+          {messages.map((message) => (
             <article key={message.id} className={`message-card message-card--${message.role}`}>
               <div className="message-card__meta">
-                <span>{roleLabel(message.role)}</span>
-                <span>{message.title}</span>
+                <span>{roleLabel(message.role === "assistant" ? "assistant" : "user")}</span>
+                <span>{formatMessageTime(message.createdAt)}</span>
               </div>
-              <p>{message.body}</p>
+              <p>{message.text}</p>
             </article>
           ))}
+          {activeRunId ? (
+            <article className="message-card message-card--assistant message-card--pending">
+              <div className="message-card__meta">
+                <span>Assistant</span>
+                <span>running</span>
+              </div>
+              <p>Waiting for the current run to produce the next assistant message.</p>
+            </article>
+          ) : null}
         </div>
       </section>
 
@@ -114,22 +146,38 @@ export function ChatShell({
         <div className="composer-shell__header">
           <div>
             <p className="chat-header__eyebrow">Composer</p>
-            <h3>Input area reserved for T1.D3</h3>
+            <h3>Message composer</h3>
           </div>
-          <button type="button" className="ghost-button" disabled>
-            Stop
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={onAbortRun}
+            disabled={!activeRunId || isAbortingRun}
+          >
+            {isAbortingRun ? "Stopping..." : "Stop"}
           </button>
         </div>
         <textarea
           className="composer-shell__input"
           rows={5}
-          placeholder="Type a message, attach run metadata, and send from this panel in the next track."
-          disabled
+          placeholder="Type a message for the current session."
+          disabled={!session || Boolean(activeRunId)}
+          value={composerValue}
+          onChange={(event) => onComposerChange(event.target.value)}
         />
         <div className="composer-shell__actions">
-          <span>Contract ready: `POST /api/chat/send` + `POST /api/chat/abort`</span>
-          <button type="button" className="primary-button" disabled>
-            Send
+          <span>
+            {activeRunId
+              ? `Run ${activeRunId} is active. Use stop to abort the current response.`
+              : "Contract ready: `POST /api/chat/send` + `POST /api/chat/abort`"}
+          </span>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={onSendMessage}
+            disabled={!session || isSendingMessage || Boolean(activeRunId) || !composerValue.trim()}
+          >
+            {isSendingMessage ? "Sending..." : "Send"}
           </button>
         </div>
       </footer>

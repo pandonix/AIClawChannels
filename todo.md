@@ -140,4 +140,4 @@
 
 - `feat/backend-gateway-core`：已完成 `T1.A1` 首版骨架并合入 `integration/mvp`
 - `feat/backend-api-session`：进行中，认领 `T1.B2 + T1.B1 + T1.B3`
-- `feat/frontend-chat-shell`：已完成 `T1.D1`，当前认领并进行中 `T1.D2`
+- `feat/frontend-chat-shell`：已完成 `T1.D1 + T1.D2 + T1.D3`
