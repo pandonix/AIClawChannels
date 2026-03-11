@@ -35,15 +35,13 @@ export class SessionService {
       return;
     }
 
-    const sessions = await this.runtime.listSessions();
-    for (const session of sessions) {
-      this.sessions.set(session.id, this.toRecord(session));
-    }
+    await this.syncSessionsFromRuntime();
     this.hydrated = true;
   }
 
   async listSessions(): Promise<SessionSummary[]> {
     await this.hydrate();
+    await this.syncSessionsFromRuntime();
     return [...this.sessions.values()]
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map(({ sessionKey: _sessionKey, ...session }) => session);
@@ -91,5 +89,19 @@ export class SessionService {
     const { sessionKey: _sessionKey, ...summary } = record;
     return summary;
   }
-}
 
+  private async syncSessionsFromRuntime(): Promise<void> {
+    const sessions = await this.runtime.listSessions();
+    const nextSessions = new Map<string, SessionRecord>();
+
+    for (const session of sessions) {
+      const record = this.toRecord(session);
+      nextSessions.set(record.id, record);
+    }
+
+    this.sessions.clear();
+    for (const [sessionId, record] of nextSessions) {
+      this.sessions.set(sessionId, record);
+    }
+  }
+}

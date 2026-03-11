@@ -1,4 +1,4 @@
-import type { SessionSummary } from "@contracts";
+import type { ChatMessage, SessionSummary } from "@contracts";
 
 import type { ChatStreamState } from "../hooks/use-chat-stream";
 
@@ -8,23 +8,19 @@ interface ChatShellProps {
   onTitleDraftChange: (value: string) => void;
   onRenameSession: () => void;
   isRenamingSession: boolean;
+  messages: ChatMessage[];
+  isLoadingHistory: boolean;
+  historyErrorMessage: string | null;
+  composerValue: string;
+  onComposerChange: (value: string) => void;
+  onSendMessage: () => void;
+  isSendingMessage: boolean;
+  activeRunId: string | null;
+  runStateLabel: string | null;
+  onAbortRun: () => void;
+  isAbortingRun: boolean;
   streamState: ChatStreamState;
 }
-
-const skeletonMessages = [
-  {
-    id: "user-outline",
-    role: "user" as const,
-    title: "User prompt",
-    body: "A selected session will load message history here in T1.D3."
-  },
-  {
-    id: "assistant-outline",
-    role: "assistant" as const,
-    title: "Assistant response",
-    body: "Streaming output, agent events, and stop controls remain scoped to later tracks."
-  }
-];
 
 function roleLabel(role: "user" | "assistant"): string {
   return role === "user" ? "User" : "Assistant";
@@ -44,12 +40,21 @@ export function ChatShell({
   onTitleDraftChange,
   onRenameSession,
   isRenamingSession,
+  messages,
+  isLoadingHistory,
+  historyErrorMessage,
+  composerValue,
+  onComposerChange,
+  onSendMessage,
+  isSendingMessage,
+  activeRunId,
+  runStateLabel,
+  onAbortRun,
+  isAbortingRun,
   streamState
 }: ChatShellProps) {
-  const hasLiveContent =
-    streamState.finalMessages.length > 0 ||
-    streamState.streamingRuns.length > 0 ||
-    streamState.notices.length > 0;
+  const hasMessages = messages.length > 0;
+
   return (
     <section className="chat-shell">
       <header className="chat-header">
@@ -117,6 +122,7 @@ export function ChatShell({
         <div className="message-stage__rail">
           <span>Timeline</span>
           <span>{streamState.agentEvents.length} agent events</span>
+          {runStateLabel ? <span className="message-stage__status">{runStateLabel}</span> : null}
           {streamState.agentEvents.length > 0 ? (
             <div className="event-stack">
               {streamState.agentEvents.map((event) => (
@@ -132,17 +138,25 @@ export function ChatShell({
           )}
         </div>
         <div className="message-stage__list">
-          {hasLiveContent
-            ? null
-            : skeletonMessages.map((message) => (
-                <article key={message.id} className={`message-card message-card--${message.role}`}>
-                  <div className="message-card__meta">
-                    <span>{roleLabel(message.role)}</span>
-                    <span>{message.title}</span>
-                  </div>
-                  <p>{message.body}</p>
-                </article>
-              ))}
+          {!session ? <p className="empty-state">Select a session to inspect chat history.</p> : null}
+          {session && isLoadingHistory && !hasMessages ? (
+            <p className="empty-state">Loading history...</p>
+          ) : null}
+          {session && historyErrorMessage ? (
+            <p className="empty-state empty-state--error">{historyErrorMessage}</p>
+          ) : null}
+          {session && !isLoadingHistory && !historyErrorMessage && !hasMessages ? (
+            <p className="empty-state">No messages yet. Start the conversation from the composer.</p>
+          ) : null}
+          {messages.map((message) => (
+            <article key={message.id} className={`message-card message-card--${message.role}`}>
+              <div className="message-card__meta">
+                <span>{roleLabel(message.role === "assistant" ? "assistant" : "user")}</span>
+                <span>{formatStreamStamp(message.createdAt)}</span>
+              </div>
+              <p>{message.text}</p>
+            </article>
+          ))}
           {streamState.streamingRuns.map((run) => (
             <article key={run.runId} className="message-card message-card--assistant message-card--live">
               <div className="message-card__meta">
@@ -152,15 +166,15 @@ export function ChatShell({
               <p>{run.text || "Waiting for delta..."}</p>
             </article>
           ))}
-          {streamState.finalMessages.map((message) => (
-            <article key={message.id} className={`message-card message-card--${message.role}`}>
+          {activeRunId && !streamState.streamingRuns.some((run) => run.runId === activeRunId) ? (
+            <article className="message-card message-card--assistant message-card--pending">
               <div className="message-card__meta">
-                <span>{roleLabel(message.role as "user" | "assistant")}</span>
-                <span>{formatStreamStamp(message.createdAt)}</span>
+                <span>Assistant</span>
+                <span>{activeRunId}</span>
               </div>
-              <p>{message.text}</p>
+              <p>Waiting for the current run to produce the first streaming delta.</p>
             </article>
-          ))}
+          ) : null}
           {streamState.notices.map((notice) => (
             <article key={`${notice.type}-${notice.runId}-${notice.createdAt}`} className="message-card message-card--notice">
               <div className="message-card__meta">
@@ -177,22 +191,38 @@ export function ChatShell({
         <div className="composer-shell__header">
           <div>
             <p className="chat-header__eyebrow">Composer</p>
-            <h3>Input area reserved for T1.D3</h3>
+            <h3>Message composer</h3>
           </div>
-          <button type="button" className="ghost-button" disabled>
-            Stop
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={onAbortRun}
+            disabled={!activeRunId || isAbortingRun}
+          >
+            {isAbortingRun ? "Stopping..." : "Stop"}
           </button>
         </div>
         <textarea
           className="composer-shell__input"
           rows={5}
-          placeholder="Type a message, attach run metadata, and send from this panel in the next track."
-          disabled
+          placeholder="Type a message for the current session."
+          disabled={!session || Boolean(activeRunId)}
+          value={composerValue}
+          onChange={(event) => onComposerChange(event.target.value)}
         />
         <div className="composer-shell__actions">
-          <span>Contract ready: `POST /api/chat/send`, `POST /api/chat/abort`, `GET /api/chat/stream`</span>
-          <button type="button" className="primary-button" disabled>
-            Send
+          <span>
+            {activeRunId
+              ? `Run ${activeRunId} is active. Use stop to abort the current response.`
+              : "Contract ready: `POST /api/chat/send`, `POST /api/chat/abort`, `GET /api/chat/stream`"}
+          </span>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={onSendMessage}
+            disabled={!session || isSendingMessage || Boolean(activeRunId) || !composerValue.trim()}
+          >
+            {isSendingMessage ? "Sending..." : "Send"}
           </button>
         </div>
       </footer>

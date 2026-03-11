@@ -126,20 +126,27 @@
 - 改公共接口时先合到 `integration/mvp`，再通知其他分支 rebase
 - 每个分支每天至少同步一次 `integration/mvp`
 
-## 9. 当前已启动的前置工作
+## 9. 当前前置工作状态
 
-当前分支 `feat/bootstrap-contract` 已开始实现：
+以下串行前置项已完成并已进入 `integration/mvp`：
 
 - 工程骨架
 - API/SSE 契约
 - mock Gateway 策略
 
-完成后，其他 worktree 就可以基于稳定目录和契约并行推进。
+当前并行开发已不再受 `T0` 阶段阻塞，剩余工作集中在 `T1.A2` 收口与 MVP 联调验证。
 
 ## 10. 当前认领状态
 
-- `feat/backend-gateway-core`：已完成 `T1.A1` 首版骨架并合入 `integration/mvp`
+- `feat/backend-gateway-core`：已完成 `T1.A1`，`T1.A2` 主体实现已进入最后两步：等待合适窗口合入 `integration/mvp`，并在联调中验证其对 SSE / 流式链路稳定性的提升
 - `feat/backend-api-session`：已完成 `T1.B2 + T1.B1 + T1.B3`
 - `feat/backend-sse-events`：已完成 `T1.C1 + T1.C2`
-- `feat/frontend-chat-shell`：已合入前端壳，当前继续推进 `T1.D2 + T1.D3`
+- `feat/frontend-chat-shell`：已完成 `T1.D1 + T1.D2 + T1.D3`，并在 `integration/mvp` 收口历史消息、发送、停止与流式展示
 - `feat/frontend-streaming`：已完成 `T1.E1 + T1.E2` 首版，并已合流 `integration/mvp`
+- `feat/persistence-auth`：暂不建议优先推进 `T2.F1 + T2.F2`
+
+## 11. 当前剩余工作
+
+- 第一优先级：将 `feat/backend-gateway-core` 的 `T1.A2` 合入 `integration/mvp`
+- 第二优先级：在 `integration/mvp` 上完成一次端到端联调，重点验证断线重连后 SSE 订阅、流式消息与停止操作是否仍然稳定
+- 第三优先级：待 MVP 主链路稳定后，再决定是否启动 `T2.F1 + T2.F2 + T2.F3`
