@@ -4,8 +4,7 @@ import type { BackendEventSource, EventBusListener } from "./types.js";
 export class MockGatewayEventSource implements BackendEventSource {
   constructor(private readonly mockGateway: MockGateway) {}
 
-  subscribe(sessionId: string, listener: EventBusListener): () => void {
+  subscribe(sessionId: string, _sessionKey: string, listener: EventBusListener): () => void {
     return this.mockGateway.subscribe(sessionId, listener);
   }
 }
-

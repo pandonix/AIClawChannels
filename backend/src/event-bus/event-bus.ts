@@ -48,7 +48,7 @@ export class EventBus {
         teardown: null,
         sessionKey: session.sessionKey
       };
-      subscription.teardown = this.eventSource.subscribe(session.id, (event) => {
+      subscription.teardown = this.eventSource.subscribe(session.id, session.sessionKey, (event) => {
         this.emitToSession(session.id, event);
       });
       this.subscriptions.set(session.id, subscription);
@@ -89,4 +89,3 @@ export class EventBus {
     }
   }
 }
-

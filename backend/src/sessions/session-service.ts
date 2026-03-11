@@ -15,6 +15,10 @@ interface SessionServiceOptions {
   sessionKeyFactory?: (sessionId: string) => string;
 }
 
+type RuntimeSessionSummary = SessionSummary & {
+  sessionKey?: string;
+};
+
 function defaultSessionKeyFactory(sessionId: string): string {
   return `web:user_001:${sessionId}`;
 }
@@ -77,11 +81,11 @@ export class SessionService {
     return session;
   }
 
-  private toRecord(session: SessionSummary): SessionRecord {
+  private toRecord(session: RuntimeSessionSummary): SessionRecord {
     const existing = this.sessions.get(session.id);
     return {
       ...session,
-      sessionKey: existing?.sessionKey ?? this.sessionKeyFactory(session.id)
+      sessionKey: session.sessionKey ?? existing?.sessionKey ?? this.sessionKeyFactory(session.id)
     };
   }
 
