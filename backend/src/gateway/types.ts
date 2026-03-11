@@ -67,3 +67,37 @@ export interface GatewayClientOptions {
   connectTimeoutMs?: number | undefined;
   deviceIdentityPath?: string | undefined;
 }
+
+export type GatewayDeviceTokenSource = "none" | "config" | "cache";
+
+export interface GatewayConnectionState {
+  phase: "idle" | "connecting" | "connected" | "reconnecting" | "closed";
+  connected: boolean;
+  attempt: number;
+  updatedAtMs: number;
+  deviceTokenSource: GatewayDeviceTokenSource;
+  lastConnectedAtMs?: number | undefined;
+  lastHello?: GatewayHelloOk | undefined;
+  lastError?: string | undefined;
+  nextRetryDelayMs?: number | undefined;
+}
+
+export interface GatewayDisconnectInfo {
+  code: number;
+  reason: string;
+}
+
+export interface GatewayConnectionManagerOptions extends GatewayClientOptions {
+  reconnectEnabled?: boolean | undefined;
+  reconnectInitialDelayMs?: number | undefined;
+  reconnectMaxDelayMs?: number | undefined;
+  deviceTokenCachePath?: string | undefined;
+  stateCachePath?: string | undefined;
+}
+
+export interface PersistedGatewayConnectionState {
+  version: 1;
+  lastConnectedAtMs?: number | undefined;
+  lastHello?: GatewayHelloOk | undefined;
+  lastError?: string | undefined;
+}
