@@ -3,14 +3,13 @@ import type { FastifyInstance } from "fastify";
 import type {
   CreateSessionRequest,
   ListSessionsResponse,
-  PatchSessionRequest,
-  PatchSessionResponse
+  PatchSessionRequest
 } from "@contracts";
 
-import type { MockGateway } from "../mock/mock-gateway.js";
+import { SessionService } from "../sessions/session-service.js";
 
 interface SessionRouteDeps {
-  mockGateway: MockGateway;
+  sessionService: SessionService;
 }
 
 export async function registerSessionRoutes(
@@ -19,7 +18,7 @@ export async function registerSessionRoutes(
 ): Promise<void> {
   app.get("/api/sessions", async () => {
     const response: ListSessionsResponse = {
-      sessions: deps.mockGateway.listSessions()
+      sessions: await deps.sessionService.listSessions()
     };
     return response;
   });
@@ -28,7 +27,7 @@ export async function registerSessionRoutes(
     if (!request.body?.name?.trim()) {
       return reply.status(400).send({ error: "name is required" });
     }
-    return deps.mockGateway.createSession({
+    return deps.sessionService.createSession({
       name: request.body.name.trim()
     });
   });
@@ -37,15 +36,10 @@ export async function registerSessionRoutes(
     "/api/sessions/:id",
     async (request, reply) => {
       try {
-        const response: PatchSessionResponse = deps.mockGateway.patchSession(
-          request.params.id,
-          request.body ?? {}
-        );
-        return response;
+        return deps.sessionService.patchSession(request.params.id, request.body ?? {});
       } catch (error) {
         return reply.status(404).send({ error: (error as Error).message });
       }
     }
   );
 }
-

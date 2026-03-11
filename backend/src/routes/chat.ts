@@ -2,15 +2,13 @@ import type { FastifyInstance } from "fastify";
 
 import type {
   AbortChatRequest,
-  ChatHistoryResponse,
-  SendChatRequest,
-  SendChatResponse
+  SendChatRequest
 } from "@contracts";
 
-import type { MockGateway } from "../mock/mock-gateway.js";
+import { ChatService } from "../chat/chat-service.js";
 
 interface ChatRouteDeps {
-  mockGateway: MockGateway;
+  chatService: ChatService;
 }
 
 export async function registerChatRoutes(
@@ -22,8 +20,7 @@ export async function registerChatRoutes(
       return reply.status(400).send({ error: "sessionId is required" });
     }
     try {
-      const response: ChatHistoryResponse = deps.mockGateway.getHistory(request.query.sessionId);
-      return response;
+      return deps.chatService.getHistory(request.query.sessionId);
     } catch (error) {
       return reply.status(404).send({ error: (error as Error).message });
     }
@@ -35,12 +32,11 @@ export async function registerChatRoutes(
       return reply.status(400).send({ error: "sessionId, message and clientRequestId are required" });
     }
     try {
-      const response: SendChatResponse = deps.mockGateway.sendMessage({
+      return deps.chatService.sendMessage({
         sessionId: body.sessionId,
         message: body.message.trim(),
         clientRequestId: body.clientRequestId.trim()
       });
-      return response;
     } catch (error) {
       return reply.status(404).send({ error: (error as Error).message });
     }
@@ -52,10 +48,9 @@ export async function registerChatRoutes(
       return reply.status(400).send({ error: "sessionId and runId are required" });
     }
     try {
-      return deps.mockGateway.abortRun(body.sessionId, body.runId);
+      return deps.chatService.abortRun(body);
     } catch (error) {
       return reply.status(404).send({ error: (error as Error).message });
     }
   });
 }
-
