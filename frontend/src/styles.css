@@ -1,0 +1,124 @@
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #14213d;
+  background:
+    radial-gradient(circle at top left, rgba(252, 163, 17, 0.22), transparent 28%),
+    linear-gradient(180deg, #f5f1e8 0%, #e7edf4 100%);
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  background: #14213d;
+  color: #f5f1e8;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.65rem 1.1rem;
+}
+
+button:hover {
+  background: #0d162d;
+}
+
+ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.app-shell {
+  margin: 0 auto;
+  max-width: 1040px;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin: 0.25rem 0 1rem;
+  max-width: 12ch;
+}
+
+.eyebrow {
+  color: #8d5a0a;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.lede {
+  font-size: 1.05rem;
+  max-width: 60ch;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-top: 2rem;
+}
+
+.panel {
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(20, 33, 61, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(20, 33, 61, 0.1);
+  padding: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.panel-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-list {
+  display: grid;
+  gap: 0.85rem;
+  list-style: none;
+  padding: 0;
+}
+
+.session-list li {
+  background: rgba(20, 33, 61, 0.04);
+  border-radius: 18px;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+}
+
+.error {
+  color: #8a1c14;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding-top: 2rem;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
