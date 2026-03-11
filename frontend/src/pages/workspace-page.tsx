@@ -216,12 +216,50 @@ export function WorkspacePage() {
   const historyErrorMessage = historyQuery.isError
     ? (historyQuery.error as Error).message
     : null;
+  const historyMessages = historyQuery.data?.messages ?? [];
   const currentSessionActiveRun =
     activeRun && activeRun.sessionId === selectedSessionId ? activeRun : null;
-  const visibleMessages = mergeMessages(historyQuery.data?.messages ?? [], streamState.finalMessages);
+  const visibleMessages = mergeMessages(historyMessages, streamState.finalMessages);
   const runStateLabel = currentSessionActiveRun
     ? `Run ${currentSessionActiveRun.runId} is generating`
     : chatUiError;
+
+  useEffect(() => {
+    if (!currentSessionActiveRun || streamState.connectionState !== "open") {
+      return;
+    }
+
+    void queryClient.invalidateQueries({
+      queryKey: ["sessions"]
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["chat-history", currentSessionActiveRun.sessionId]
+    });
+  }, [currentSessionActiveRun, queryClient, streamState.connectionState]);
+
+  useEffect(() => {
+    if (!currentSessionActiveRun) {
+      return;
+    }
+
+    const runStartedAt = new Date(currentSessionActiveRun.startedAt).getTime();
+    const hasPersistedAssistantMessage = historyMessages.some((message) => {
+      return (
+        message.role === "assistant" &&
+        new Date(message.createdAt).getTime() >= runStartedAt
+      );
+    });
+
+    if (!hasPersistedAssistantMessage) {
+      return;
+    }
+
+    setActiveRun(null);
+    setChatUiError(null);
+    void queryClient.invalidateQueries({
+      queryKey: ["sessions"]
+    });
+  }, [currentSessionActiveRun, historyMessages, queryClient]);
 
   async function handleCreateSession(): Promise<void> {
     const name = newSessionName.trim();

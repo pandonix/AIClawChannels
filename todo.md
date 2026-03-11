@@ -134,7 +134,26 @@
 - API/SSE 契约
 - mock Gateway 策略
 
-当前并行开发已不再受 `T0` 阶段阻塞，剩余工作集中在 `T1.A2` 收口与 MVP 联调验证。
+当前并行开发已不再受 `T0` 阶段阻塞，剩余工作集中在 MVP 联调收口，以及从 mock runtime 补到真实 Gateway 联调入口。
+
+## 9.1 新增补项任务
+
+### T1.A3 真实 Gateway runtime 接线
+
+- 目标：让后端运行时可在 `mock runtime` 与本地 OpenClaw Gateway 之间按配置切换，完成真实 Gateway 联调入口
+- 主要内容：
+  - 在 `backend/src/app.ts` 按环境变量切换 runtime，而不是固定使用 `MockRuntime`
+  - 将已完成的 `gateway-client` / 重连 / device token 能力接到 chat、session、event-bus 主链路
+  - 打通 `Frontend -> Backend HTTP/SSE -> OpenClaw Gateway WS`
+  - 补充最小可用的真实 Gateway 启动说明与联调前置条件
+- 输出：
+  - 可切换的 backend runtime 装配逻辑
+  - 面向真实 Gateway 的联调配置说明
+- 验收：
+  - `MOCK_GATEWAY=false` 时，后端可连接本地 OpenClaw Gateway
+  - 会话加载、发送消息、SSE 流式事件、停止操作可通过真实 Gateway 贯通
+  - Gateway 断线重连后，后端与前端状态可恢复到可继续联调的状态
+- 依赖：T1.A1, T1.A2, T1.B1, T1.B2, T1.B3, T1.C1, T1.C2
 
 ## 10. 当前认领状态
 
@@ -147,5 +166,24 @@
 
 ## 11. 当前剩余工作
 
-- 第一优先级：在 `integration/mvp` 上完成一次端到端联调，重点验证断线重连后 SSE 订阅、流式消息与停止操作是否仍然稳定
-- 第二优先级：补齐 MVP 联调结论与回归清单，不启动 `T2.F1 + T2.F2 + T2.F3`
+- 第一优先级：新增 `T1.A3`，把后端从固定 `mock runtime` 改为可切换到真实 OpenClaw Gateway 的运行时装配，并完成真实 Gateway 联调入口
+- 第二优先级：在 `integration/mvp` 上继续做浏览器层面的 UI 手工联调，确认断线重连、流式消息、停止操作在页面上闭环
+- 第三优先级：继续冻结 `T2.F1 + T2.F2 + T2.F3`，待 MVP 明确需要持久化、认证或部署样板时再开启
+
+## 12. 2026-03-11 MVP 联调结论
+
+- 联调范围：`integration/mvp` + mock runtime，覆盖 `GET /api/chat/stream`、`POST /api/chat/send`、`POST /api/chat/abort`
+- 结论 1：正常链路通过。可稳定收到 `agent.event`、`message.delta`、`message.final`
+- 结论 2：SSE 中途断开后重新订阅可继续接收后续事件，流式消息与最终收束在连接恢复后仍可完成
+- 结论 3：停止操作通过。活跃 run 可稳定收到 `run.aborted`
+- 结论 4：发现一个边界问题并已在 `integration/mvp` 修补。若 `message.final` 在 SSE 断线期间已经发出，服务端当前不会回放该事件；前端现已在连接恢复到 `open` 后主动补拉 history，用持久化消息兜底收敛 UI 状态
+
+## 13. MVP 回归清单
+
+- 会话列表加载、创建、重命名可正常工作
+- 聊天历史可加载，发送消息后会话列表与历史会刷新
+- SSE 建立后可收到 `agent.event`、多段 `message.delta` 与 `message.final`
+- SSE 中途断开并重连后，后续流式事件仍可继续接收
+- 若最终 `message.final` 在断线窗口内丢失，前端会在重连恢复后补拉 history 并结束活跃 run
+- 停止操作可触发 `run.aborted`，前端结束活跃 run 并刷新会话/历史状态
+- 当前联调仍基于 mock runtime；真实 Gateway 接入后的网络抖动、鉴权与持久化行为不在本轮结论内
