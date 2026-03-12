@@ -11,8 +11,10 @@ import {
   sendChat
 } from "../api/client";
 import { ChatShell } from "../components/chat-shell";
+import { NavigationRail } from "../components/navigation-rail";
+import { SessionPanel } from "../components/session-panel";
+import { WorkspaceDrawer } from "../components/workspace-drawer";
 import { useChatStream } from "../hooks/use-chat-stream";
-import { SessionSidebar } from "../components/session-sidebar";
 
 interface ActiveRunState {
   runId: string;
@@ -26,12 +28,21 @@ function buildClientRequestId(): string {
 
 function mergeMessages(historyMessages: ChatMessage[], streamedMessages: ChatMessage[]): ChatMessage[] {
   const byId = new Map<string, ChatMessage>();
+  const byTimestamp = new Map<string, ChatMessage>();
 
   for (const message of historyMessages) {
     byId.set(message.id, message);
+    // Use timestamp + role as secondary key for deduplication
+    const timestampKey = `${message.createdAt}:${message.role}`;
+    byTimestamp.set(timestampKey, message);
   }
 
   for (const message of streamedMessages) {
+    const timestampKey = `${message.createdAt}:${message.role}`;
+    // Skip if we already have a message with the same timestamp and role from history
+    if (byTimestamp.has(timestampKey)) {
+      continue;
+    }
     byId.set(message.id, message);
   }
 
@@ -53,6 +64,8 @@ export function WorkspacePage() {
   const [composerValue, setComposerValue] = useState("");
   const [activeRun, setActiveRun] = useState<ActiveRunState | null>(null);
   const [chatUiError, setChatUiError] = useState<string | null>(null);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const historyQuery = useQuery({
     queryKey: ["chat-history", selectedSessionId],
@@ -321,30 +334,16 @@ export function WorkspacePage() {
       <div className="workspace-glow workspace-glow--left" />
       <div className="workspace-glow workspace-glow--right" />
       <div className="workspace-grid">
-        <SessionSidebar
-          isLoading={sessionsQuery.isPending}
-          sessions={sessions}
-          selectedSessionId={selectedSessionId}
-          onSelectSession={setSelectedSessionId}
-          onRefresh={() => {
-            void sessionsQuery.refetch();
+        <NavigationRail
+          onNewChat={() => {
+            setHistoryPanelOpen(true);
           }}
-          errorMessage={mutationErrorMessage ?? errorMessage}
-          newSessionName={newSessionName}
-          onNewSessionNameChange={setNewSessionName}
-          onCreateSession={() => {
-            void handleCreateSession();
-          }}
-          isCreatingSession={createSessionMutation.isPending}
+          onToggleHistory={() => setHistoryPanelOpen((prev) => !prev)}
+          onOpenSettings={() => setDrawerOpen(true)}
+          historyOpen={historyPanelOpen}
         />
         <ChatShell
           session={selectedSession}
-          titleDraft={titleDraft}
-          onTitleDraftChange={setTitleDraft}
-          onRenameSession={() => {
-            void handleRenameSession();
-          }}
-          isRenamingSession={renameSessionMutation.isPending}
           messages={visibleMessages}
           isLoadingHistory={historyQuery.isPending}
           historyErrorMessage={historyErrorMessage}
@@ -361,8 +360,41 @@ export function WorkspacePage() {
           }}
           isAbortingRun={abortChatMutation.isPending}
           streamState={streamState}
+          onOpenSettings={() => setDrawerOpen(true)}
         />
       </div>
+
+      <SessionPanel
+        isOpen={historyPanelOpen}
+        onClose={() => setHistoryPanelOpen(false)}
+        isLoading={sessionsQuery.isPending}
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        onSelectSession={setSelectedSessionId}
+        onRefresh={() => {
+          void sessionsQuery.refetch();
+        }}
+        errorMessage={mutationErrorMessage ?? errorMessage}
+        newSessionName={newSessionName}
+        onNewSessionNameChange={setNewSessionName}
+        onCreateSession={() => {
+          void handleCreateSession();
+        }}
+        isCreatingSession={createSessionMutation.isPending}
+      />
+
+      <WorkspaceDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        session={selectedSession}
+        titleDraft={titleDraft}
+        onTitleDraftChange={setTitleDraft}
+        onRenameSession={() => {
+          void handleRenameSession();
+        }}
+        isRenamingSession={renameSessionMutation.isPending}
+        streamState={streamState}
+      />
     </main>
   );
 }
