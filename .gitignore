@@ -4,3 +4,13 @@ dist/
 .env
 *.log
 
+# Runtime state files
+backend/.state/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots
+*.png
+*.jpg
+
