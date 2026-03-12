@@ -1,16 +1,18 @@
 import type { SessionSummary } from "@contracts";
 
 interface SessionSidebarProps {
-  isLoading: boolean;
-  sessions: SessionSummary[];
-  selectedSessionId: string | null;
-  onSelectSession: (sessionId: string) => void;
-  onRefresh: () => void;
   errorMessage: string | null;
-  newSessionName: string;
-  onNewSessionNameChange: (value: string) => void;
-  onCreateSession: () => void;
   isCreatingSession: boolean;
+  isLoading: boolean;
+  isOpen: boolean;
+  newSessionName: string;
+  onClose: () => void;
+  onCreateSession: () => void;
+  onNewSessionNameChange: (value: string) => void;
+  onRefresh: () => void;
+  onSelectSession: (sessionId: string) => void;
+  selectedSessionId: string | null;
+  sessions: SessionSummary[];
 }
 
 function formatTimestamp(value: string): string {
@@ -23,39 +25,45 @@ function formatTimestamp(value: string): string {
 }
 
 export function SessionSidebar({
-  isLoading,
-  sessions,
-  selectedSessionId,
-  onSelectSession,
-  onRefresh,
   errorMessage,
+  isCreatingSession,
+  isLoading,
+  isOpen,
   newSessionName,
-  onNewSessionNameChange,
+  onClose,
   onCreateSession,
-  isCreatingSession
+  onNewSessionNameChange,
+  onRefresh,
+  onSelectSession,
+  selectedSessionId,
+  sessions
 }: SessionSidebarProps) {
   return (
-    <aside className="workspace-sidebar">
-      <div className="sidebar-brand">
-        <p className="sidebar-kicker">AIClawChannels</p>
-        <h1>Operator Desk</h1>
-        <p className="sidebar-copy">
-          Shell for sessions, messages, and streaming status. Business actions land here in the next
-          frontend tracks.
-        </p>
+    <aside className={`history-panel${isOpen ? " history-panel--open" : ""}`}>
+      <div className="history-panel__header">
+        <div>
+          <p className="panel-kicker">History</p>
+          <h2>Sessions</h2>
+        </div>
+        <button
+          type="button"
+          className="icon-button icon-button--ghost"
+          onClick={onClose}
+          aria-label="Close history"
+        >
+          x
+        </button>
       </div>
 
-      <div className="sidebar-toolbar">
-        <div className="toolbar-form">
-          <label className="toolbar-form__label" htmlFor="new-session-name">
-            New session
-          </label>
+      <div className="history-panel__actions">
+        <label className="field-stack" htmlFor="new-session-name">
+          <span className="field-label">New chat</span>
           <input
             id="new-session-name"
             className="text-input text-input--dark"
             type="text"
             value={newSessionName}
-            placeholder="会话标题"
+            placeholder="Session title"
             onChange={(event) => onNewSessionNameChange(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -64,63 +72,55 @@ export function SessionSidebar({
               }
             }}
           />
+        </label>
+        <div className="history-panel__button-row">
+          <button
+            type="button"
+            className="primary-button"
+            onClick={onCreateSession}
+            disabled={isCreatingSession}
+          >
+            {isCreatingSession ? "Creating..." : "Create"}
+          </button>
+          <button type="button" className="ghost-button ghost-button--dark" onClick={onRefresh}>
+            Refresh
+          </button>
         </div>
-        <button
-          type="button"
-          className="primary-button"
-          onClick={onCreateSession}
-          disabled={isCreatingSession || !newSessionName.trim()}
-        >
-          {isCreatingSession ? "Creating..." : "New Session"}
-        </button>
-        <button type="button" className="ghost-button" onClick={onRefresh}>
-          Refresh
-        </button>
       </div>
 
-      <section className="sidebar-section sidebar-section--sessions">
-        <div className="section-heading">
-          <span>Sessions</span>
-          <span>{sessions.length}</span>
-        </div>
-        {isLoading ? <p className="sidebar-state">Loading sessions...</p> : null}
-        {errorMessage ? <p className="sidebar-state error-text">{errorMessage}</p> : null}
-        {!isLoading && !errorMessage ? (
-          <ul className="session-stack">
-            {sessions.map((session) => {
-              const isActive = session.id === selectedSessionId;
+      <div className="history-panel__meta">
+        <span>{sessions.length} sessions</span>
+        <span>Chat-first workspace</span>
+      </div>
 
-              return (
-                <li key={session.id}>
-                  <button
-                    type="button"
-                    className={`session-card${isActive ? " active" : ""}`}
-                    onClick={() => onSelectSession(session.id)}
-                  >
-                    <span className="session-card__title">{session.title}</span>
-                    <span className="session-card__meta">
-                      {session.agentId ?? "default agent"} . {formatTimestamp(session.updatedAt)}
-                    </span>
-                    <span className="session-card__preview">
-                      {session.lastMessagePreview ?? "This session has no messages yet."}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-      </section>
+      {isLoading ? <p className="panel-state">Loading sessions...</p> : null}
+      {errorMessage ? <p className="panel-state panel-state--error">{errorMessage}</p> : null}
 
-      <section className="sidebar-section sidebar-section--footer">
-        <div className="section-heading">
-          <span>Track</span>
-          <span>T1.D2</span>
-        </div>
-        <p className="sidebar-copy">
-          Current scope: session list, create session, rename title, and current session switching.
-        </p>
-      </section>
+      {!isLoading && !errorMessage ? (
+        <ul className="history-list">
+          {sessions.map((session) => {
+            const isActive = session.id === selectedSessionId;
+
+            return (
+              <li key={session.id}>
+                <button
+                  type="button"
+                  className={`history-card${isActive ? " history-card--active" : ""}`}
+                  onClick={() => onSelectSession(session.id)}
+                >
+                  <span className="history-card__title">{session.title}</span>
+                  <span className="history-card__meta">
+                    {session.agentId ?? "default agent"} . {formatTimestamp(session.updatedAt)}
+                  </span>
+                  <span className="history-card__preview">
+                    {session.lastMessagePreview ?? "No messages yet."}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </aside>
   );
 }

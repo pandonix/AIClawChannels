@@ -53,6 +53,9 @@ export function WorkspacePage() {
   const [composerValue, setComposerValue] = useState("");
   const [activeRun, setActiveRun] = useState<ActiveRunState | null>(null);
   const [chatUiError, setChatUiError] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [isDrawerPinned, setIsDrawerPinned] = useState(false);
 
   const historyQuery = useQuery({
     queryKey: ["chat-history", selectedSessionId],
@@ -69,6 +72,8 @@ export function WorkspacePage() {
       setSelectedSessionId(session.id);
       setNewSessionName("默认会话");
       setComposerValue("");
+      setIsHistoryOpen(false);
+      setIsDrawerOpen(true);
     }
   });
 
@@ -156,6 +161,9 @@ export function WorkspacePage() {
     setTitleDraft(selectedSession?.title ?? "");
     setComposerValue("");
     setChatUiError(null);
+    if (selectedSession?.id) {
+      setIsDrawerOpen(true);
+    }
   }, [selectedSession?.id, selectedSession?.title]);
 
   const streamState = useChatStream(selectedSessionId);
@@ -262,10 +270,7 @@ export function WorkspacePage() {
   }, [currentSessionActiveRun, historyMessages, queryClient]);
 
   async function handleCreateSession(): Promise<void> {
-    const name = newSessionName.trim();
-    if (!name) {
-      return;
-    }
+    const name = newSessionName.trim() || "默认会话";
 
     await createSessionMutation.mutateAsync({
       name
@@ -321,22 +326,81 @@ export function WorkspacePage() {
       <div className="workspace-glow workspace-glow--left" />
       <div className="workspace-glow workspace-glow--right" />
       <div className="workspace-grid">
+        <nav className="nav-rail" aria-label="Primary">
+          <div className="nav-rail__group">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => {
+                void handleCreateSession();
+              }}
+              disabled={createSessionMutation.isPending}
+              title="New chat"
+              aria-label="New chat"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className={`icon-button${isHistoryOpen ? " is-active" : ""}`}
+              onClick={() => setIsHistoryOpen((current) => !current)}
+              title="History"
+              aria-label="History"
+            >
+              H
+            </button>
+            <button
+              type="button"
+              className={`icon-button${isDrawerOpen ? " is-active" : ""}`}
+              onClick={() => setIsDrawerOpen((current) => !current)}
+              title="Settings"
+              aria-label="Settings"
+            >
+              S
+            </button>
+          </div>
+        </nav>
+
         <SessionSidebar
           isLoading={sessionsQuery.isPending}
+          isOpen={isHistoryOpen}
           sessions={sessions}
           selectedSessionId={selectedSessionId}
-          onSelectSession={setSelectedSessionId}
+          onSelectSession={(sessionId) => {
+            setSelectedSessionId(sessionId);
+            setIsHistoryOpen(false);
+          }}
           onRefresh={() => {
             void sessionsQuery.refetch();
           }}
           errorMessage={mutationErrorMessage ?? errorMessage}
           newSessionName={newSessionName}
           onNewSessionNameChange={setNewSessionName}
+          onClose={() => setIsHistoryOpen(false)}
           onCreateSession={() => {
             void handleCreateSession();
           }}
           isCreatingSession={createSessionMutation.isPending}
         />
+
+        {isHistoryOpen ? (
+          <button
+            type="button"
+            className="workspace-overlay workspace-overlay--history"
+            aria-label="Close history"
+            onClick={() => setIsHistoryOpen(false)}
+          />
+        ) : null}
+
+        {isDrawerOpen && !isDrawerPinned ? (
+          <button
+            type="button"
+            className="workspace-overlay workspace-overlay--drawer"
+            aria-label="Close drawer"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+        ) : null}
+
         <ChatShell
           session={selectedSession}
           titleDraft={titleDraft}
@@ -353,6 +417,11 @@ export function WorkspacePage() {
           onSendMessage={() => {
             void handleSendMessage();
           }}
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          isDrawerOpen={isDrawerOpen}
+          isDrawerPinned={isDrawerPinned}
+          onDrawerOpenChange={setIsDrawerOpen}
+          onDrawerPinnedChange={setIsDrawerPinned}
           isSendingMessage={sendChatMutation.isPending}
           activeRunId={currentSessionActiveRun?.runId ?? null}
           runStateLabel={runStateLabel}
