@@ -1,6 +1,21 @@
+import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, SessionSummary } from "@contracts";
 
+import { cn } from "../lib/cn";
 import type { ChatStreamState } from "../hooks/use-chat-stream";
+import { Button, IconButton } from "./ui/button";
+import { Icon } from "./ui/icon";
+import { MarkdownRenderer } from "./ui/markdown-renderer";
+import { Panel } from "./ui/panel";
+import { Skeleton } from "./ui/skeleton";
+import {
+  ScrollAnchor,
+  ScrollToBottomButton,
+  useScrollAnchor
+} from "./ui/scroll-anchor";
+import { StatusPill } from "./ui/status-pill";
+import { StreamingCursor } from "./ui/streaming-cursor";
+import { Textarea } from "./ui/textarea";
 
 interface ChatShellProps {
   session: SessionSummary | null;
@@ -20,7 +35,7 @@ interface ChatShellProps {
 }
 
 function roleLabel(role: "user" | "assistant"): string {
-  return role === "user" ? "User" : "Assistant";
+  return role === "user" ? "你" : "AI 助手";
 }
 
 function formatStreamStamp(value: string): string {
@@ -29,6 +44,33 @@ function formatStreamStamp(value: string): string {
     minute: "2-digit",
     second: "2-digit"
   }).format(new Date(value));
+}
+
+function connectionLabel(state: ChatStreamState["connectionState"]): string {
+  switch (state) {
+    case "open":
+      return "SSE 已连接";
+    case "connecting":
+      return "SSE 连接中";
+    case "reconnecting":
+      return "SSE 重连中";
+    case "error":
+      return "SSE 异常";
+    default:
+      return "SSE 待连接";
+  }
+}
+
+function connectionTone(state: ChatStreamState["connectionState"]): "teal" | "muted" | "error" {
+  if (state === "open") {
+    return "teal";
+  }
+
+  if (state === "error") {
+    return "error";
+  }
+
+  return "muted";
 }
 
 export function ChatShell({
@@ -48,112 +90,347 @@ export function ChatShell({
   onOpenSettings
 }: ChatShellProps) {
   const hasMessages = messages.length > 0;
+  const listRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const hasTimelineContent =
+    streamState.agentEvents.length > 0 || Boolean(runStateLabel) || Boolean(activeRunId);
+  const hasPendingRunWithoutDelta =
+    Boolean(activeRunId) &&
+    !streamState.streamingRuns.some((run) => run.runId === activeRunId);
+  const scrollWatchToken = [
+    activeRunId ?? "idle",
+    messages.at(-1)?.id ?? "none",
+    streamState.streamingRuns
+      .map((run) => `${run.runId}:${run.text.length}`)
+      .join("|"),
+    streamState.notices
+      .map((notice) => `${notice.type}:${notice.runId}:${notice.createdAt}`)
+      .join("|"),
+    historyErrorMessage ?? "no-error",
+    isLoadingHistory ? "loading" : "ready"
+  ].join("::");
+  const {
+    anchorRef,
+    handleScroll,
+    isFollowing,
+    scrollToBottom
+  } = useScrollAnchor({
+    containerRef: listRef,
+    isEnabled: Boolean(session),
+    streaming: streamState.streamingRuns.length > 0,
+    watchToken: scrollWatchToken
+  });
+
+  useEffect(() => {
+    if (hasTimelineContent) {
+      setTimelineOpen(true);
+    }
+  }, [hasTimelineContent]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 224)}px`;
+  }, [composerValue, composerFocused]);
 
   return (
-    <section className="chat-shell">
-      <header className="chat-header">
-        <div className="chat-header__title-block">
-          <p className="chat-header__eyebrow">Workspace</p>
-          <h2>{session?.title ?? "Select a session"}</h2>
+    <section className="flex min-h-0 flex-1 flex-col gap-4 p-3 md:p-5" data-testid="chat-shell">
+      <Panel
+        padding="lg"
+        tone="soft"
+        className="flex flex-col gap-4 border-white/65 bg-[rgba(255,250,243,0.82)] md:flex-row md:items-start md:justify-between"
+      >
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b3211]">
+              协作工作台
+            </p>
+            <h2 className="font-display text-[clamp(1.8rem,4vw,2.6rem)] leading-none tracking-[-0.05em] text-[#1f262f]">
+              <span data-testid="chat-title">
+              {session?.title ?? "选择一个会话开始协作"}
+              </span>
+            </h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-[#5d6973]">
+            {session
+              ? "支持 Markdown、代码块和流式回复，时间线会在当前轮次有事件时自动展开。"
+              : "左侧打开历史会话，或新建一个会话后，把任务、代码和修改目标直接发给 AI。"}
+          </p>
         </div>
-        <div className="chat-header__status">
-          <span className={`status-pill${streamState.connectionState === "open" ? "" : " status-pill--muted"}`}>
-            SSE {streamState.connectionState}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusPill data-testid="sse-status" tone={connectionTone(streamState.connectionState)}>
+            {connectionLabel(streamState.connectionState)}
+          </StatusPill>
           {streamState.streamError ? (
-            <span className="status-pill status-pill--error">{streamState.streamError}</span>
+            <StatusPill tone="error">{streamState.streamError}</StatusPill>
           ) : null}
-          <button
+          <IconButton
+            data-testid="chat-settings-button"
             type="button"
-            className="icon-button icon-button--settings"
             onClick={onOpenSettings}
-            title="Session Settings"
+            variant="secondary"
+            aria-label="打开会话设置"
+            title="打开会话设置"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
+            <Icon name="settings" size={18} />
+          </IconButton>
         </div>
-      </header>
+      </Panel>
 
-      <section className="message-stage">
-        <div className="message-stage__rail">
-          <span>Timeline</span>
-          <span>{streamState.agentEvents.length} events</span>
-          {runStateLabel ? <span className="message-stage__status">{runStateLabel}</span> : null}
-          {streamState.agentEvents.length > 0 ? (
-            <div className="event-stack">
-              {streamState.agentEvents.map((event) => (
-                <article key={`${event.runId}-${event.createdAt}`} className="event-card">
-                  <strong>{event.stage}</strong>
-                  <span>{event.message}</span>
-                  <time>{formatStreamStamp(event.createdAt)}</time>
+      <section
+        className={cn(
+          "grid min-h-0 flex-1 gap-4",
+          timelineOpen && hasTimelineContent ? "xl:grid-cols-[minmax(0,1fr)_22rem]" : "grid-cols-1"
+        )}
+      >
+        <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              className="gap-2"
+              disabled={!hasTimelineContent}
+              onClick={() => setTimelineOpen((current) => !current)}
+              trailingIcon={
+                <Icon
+                  className={timelineOpen && hasTimelineContent ? "rotate-180 transition-transform duration-200" : "transition-transform duration-200"}
+                  name="chevronDown"
+                  size={16}
+                />
+              }
+              variant={timelineOpen && hasTimelineContent ? "secondary" : "ghost"}
+            >
+              时间线
+              <span className="rounded-full bg-[#1f262f]/6 px-2 py-0.5 text-[11px] font-semibold tracking-[0.12em]">
+                {streamState.agentEvents.length}
+              </span>
+            </Button>
+            {runStateLabel ? (
+              <p className="text-sm leading-6 text-[#5d6973]">{runStateLabel}</p>
+            ) : null}
+          </div>
+
+          <Panel
+            padding="none"
+            tone="soft"
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden border-white/65 bg-[rgba(255,252,248,0.76)]"
+          >
+            <div
+              data-testid="message-list"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-6 md:py-6"
+              onScroll={handleScroll}
+              ref={listRef}
+            >
+              {!session ? (
+                <section className="rounded-[28px] border border-dashed border-[#1f262f]/10 bg-white/55 px-6 py-8 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b3211]">
+                    准备开始
+                  </p>
+                  <h3 className="mt-3 font-display text-[2rem] tracking-[-0.04em] text-[#1f262f]">
+                    先打开一个会话，再把任务交给 AI。
+                  </h3>
+                  <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#5d6973]">
+                    左侧可以切换历史会话，右上角可打开当前会话的配置与实时日志。
+                  </p>
+                </section>
+              ) : null}
+
+              {session && isLoadingHistory && !hasMessages ? (
+                <div className="grid gap-4">
+                  <Skeleton className="h-28 max-w-[32rem]" />
+                  <Skeleton className="h-36 max-w-[42rem]" />
+                  <Skeleton className="h-28 max-w-[36rem]" />
+                </div>
+              ) : null}
+
+              {session && historyErrorMessage ? (
+                <Panel padding="md" tone="muted" className="border-[#9a2816]/12 bg-[#9a2816]/8 text-[#9a2816]">
+                  <p className="text-sm leading-6">{historyErrorMessage}</p>
+                </Panel>
+              ) : null}
+
+              {session && !isLoadingHistory && !historyErrorMessage && !hasMessages ? (
+                <section className="rounded-[28px] border border-dashed border-[#1f262f]/10 bg-white/60 px-6 py-8">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b3211]">
+                    当前会话为空
+                  </p>
+                  <h3 className="mt-3 font-display text-[2rem] tracking-[-0.04em] text-[#1f262f]">
+                    从下方输入框发出第一条消息。
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5d6973]">
+                    支持代码、列表和链接等 Markdown 输出，流式返回会自动跟随到底部。
+                  </p>
+                </section>
+              ) : null}
+
+              {messages.map((message) => (
+                <article
+                  data-testid={`message-card-${message.role}`}
+                  key={message.id}
+                  className={cn(
+                    "max-w-[min(100%,48rem)] rounded-[28px] border px-4 py-4 shadow-[0_18px_38px_rgba(31,38,47,0.08)] md:px-5",
+                    message.role === "assistant"
+                      ? "border-[#1f262f]/8 bg-white/88 text-[#1f262f]"
+                      : "ml-auto border-transparent bg-[#1f262f] text-[#fffaf4] shadow-[0_24px_54px_rgba(16,24,31,0.24)]"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mb-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em]",
+                      message.role === "assistant" ? "text-[#5d6973]" : "text-[#f7f3ec]/56"
+                    )}
+                  >
+                    <span>{roleLabel(message.role === "assistant" ? "assistant" : "user")}</span>
+                    <span>{formatStreamStamp(message.createdAt)}</span>
+                  </div>
+                  {message.role === "assistant" ? (
+                    <MarkdownRenderer content={message.text} />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-[15px] leading-7">{message.text}</p>
+                  )}
                 </article>
               ))}
+
+              {streamState.streamingRuns.map((run) => (
+                <article
+                  data-testid="message-card-live"
+                  key={run.runId}
+                  className="max-w-[min(100%,48rem)] rounded-[28px] border border-[#13586d]/12 bg-[linear-gradient(180deg,rgba(19,88,109,0.08)_0%,rgba(255,255,255,0.9)_100%)] px-4 py-4 shadow-[0_20px_42px_rgba(19,88,109,0.12)] md:px-5"
+                >
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#13586d]">
+                    <span>AI 助手</span>
+                    <span>生成中 {run.runId}</span>
+                  </div>
+                  {run.text ? (
+                    <div className="flex items-end">
+                      <MarkdownRenderer content={run.text} />
+                      <StreamingCursor />
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      <Skeleton className="h-5 max-w-[18rem]" />
+                      <Skeleton className="h-5 max-w-[26rem]" />
+                    </div>
+                  )}
+                </article>
+              ))}
+
+              {hasPendingRunWithoutDelta ? (
+                <article data-testid="message-card-pending" className="max-w-[min(100%,48rem)] rounded-[28px] border border-[#13586d]/10 bg-[#13586d]/6 px-4 py-4 shadow-[0_18px_36px_rgba(19,88,109,0.1)] md:px-5">
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#13586d]">
+                    <span>AI 助手</span>
+                    <span>{activeRunId}</span>
+                  </div>
+                  <div className="grid gap-3">
+                    <Skeleton className="h-5 max-w-[18rem]" />
+                    <Skeleton className="h-5 max-w-[26rem]" />
+                  </div>
+                </article>
+              ) : null}
+
+              {streamState.notices.map((notice) => (
+                <article
+                  data-testid="message-card-notice"
+                  key={`${notice.type}-${notice.runId}-${notice.createdAt}`}
+                  className="max-w-[min(100%,48rem)] rounded-[28px] border border-[#9a2816]/12 bg-[#9a2816]/8 px-4 py-4 text-[#7f2112] shadow-[0_16px_32px_rgba(154,40,22,0.08)] md:px-5"
+                >
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9a2816]">
+                    <span>{notice.type === "error" ? "运行错误" : "运行已终止"}</span>
+                    <span>{notice.runId}</span>
+                  </div>
+                  <p className="text-sm leading-7">{notice.message}</p>
+                </article>
+              ))}
+
+              <ScrollAnchor>
+                <div ref={anchorRef} />
+              </ScrollAnchor>
             </div>
-          ) : (
-            <span className="empty-hint">Waiting for agent events</span>
-          )}
+
+            {!isFollowing &&
+            (hasMessages || isStreamingHistoryVisible(streamState, hasPendingRunWithoutDelta)) ? (
+              <ScrollToBottomButton
+                className="absolute right-5 bottom-5 shadow-[0_16px_32px_rgba(31,38,47,0.12)]"
+                data-testid="scroll-to-bottom"
+                onClick={() => scrollToBottom("smooth")}
+              />
+            ) : null}
+          </Panel>
         </div>
-        <div className="message-stage__list">
-          {!session ? <p className="empty-state">Select a session to start chatting.</p> : null}
-          {session && isLoadingHistory && !hasMessages ? (
-            <p className="empty-state">Loading history...</p>
-          ) : null}
-          {session && historyErrorMessage ? (
-            <p className="empty-state empty-state--error">{historyErrorMessage}</p>
-          ) : null}
-          {session && !isLoadingHistory && !historyErrorMessage && !hasMessages ? (
-            <p className="empty-state">No messages yet. Start the conversation below.</p>
-          ) : null}
-          {messages.map((message) => (
-            <article key={message.id} className={`message-card message-card--${message.role}`}>
-              <div className="message-card__meta">
-                <span>{roleLabel(message.role === "assistant" ? "assistant" : "user")}</span>
-                <span>{formatStreamStamp(message.createdAt)}</span>
+
+        {timelineOpen && hasTimelineContent ? (
+          <Panel
+            padding="md"
+            tone="elevated"
+            className="order-1 flex min-h-[16rem] flex-col gap-4 border-white/70 bg-[rgba(255,252,248,0.9)] xl:order-2 xl:min-h-0"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8b3211]">
+                  执行时间线
+                </p>
+                <h3 className="font-display text-[1.5rem] tracking-[-0.04em] text-[#1f262f]">
+                  Agent 事件
+                </h3>
               </div>
-              <p>{message.text}</p>
-            </article>
-          ))}
-          {streamState.streamingRuns.map((run) => (
-            <article key={run.runId} className="message-card message-card--assistant message-card--live">
-              <div className="message-card__meta">
-                <span>Assistant</span>
-                <span>Streaming {run.runId}</span>
+              <StatusPill tone="teal">{streamState.agentEvents.length} 条</StatusPill>
+            </div>
+            {runStateLabel ? <p className="text-sm leading-6 text-[#5d6973]">{runStateLabel}</p> : null}
+            {streamState.agentEvents.length > 0 ? (
+              <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto pr-1">
+                {streamState.agentEvents.map((event) => (
+                  <article
+                    data-testid="timeline-event"
+                    key={`${event.runId}-${event.createdAt}`}
+                    className="space-y-2 rounded-[22px] border border-[#1f262f]/8 bg-[#1f262f]/3 px-4 py-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <strong className="text-sm text-[#1f262f]">{event.stage}</strong>
+                      <span className="text-[11px] uppercase tracking-[0.2em] text-[#5d6973]">
+                        {formatStreamStamp(event.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-6 text-[#4f5d68]">{event.message}</p>
+                  </article>
+                ))}
               </div>
-              <p>{run.text || "Waiting for delta..."}</p>
-            </article>
-          ))}
-          {activeRunId && !streamState.streamingRuns.some((run) => run.runId === activeRunId) ? (
-            <article className="message-card message-card--assistant message-card--pending">
-              <div className="message-card__meta">
-                <span>Assistant</span>
-                <span>{activeRunId}</span>
-              </div>
-              <p>Waiting for the first streaming delta...</p>
-            </article>
-          ) : null}
-          {streamState.notices.map((notice) => (
-            <article key={`${notice.type}-${notice.runId}-${notice.createdAt}`} className="message-card message-card--notice">
-              <div className="message-card__meta">
-                <span>{notice.type === "error" ? "Run error" : "Run aborted"}</span>
-                <span>{notice.runId}</span>
-              </div>
-              <p>{notice.message}</p>
-            </article>
-          ))}
-        </div>
+            ) : (
+              <Panel padding="md" tone="muted" className="border-[#1f262f]/6 bg-[#1f262f]/3">
+                <p className="text-sm leading-6 text-[#5d6973]">本轮还没有 agent 事件。</p>
+              </Panel>
+            )}
+          </Panel>
+        ) : null}
       </section>
 
-      <footer className="composer-shell">
-        <textarea
-          className="composer-shell__input"
-          rows={4}
-          placeholder={session ? "Type a message..." : "Select a session to start chatting."}
+      <Panel
+        padding="lg"
+        tone="dark"
+        className={cn(
+          "gap-4 bg-[linear-gradient(180deg,rgba(31,38,47,0.98)_0%,rgba(38,47,59,0.94)_70%,rgba(47,56,66,0.98)_100%)]",
+          composerFocused && "ring-1 ring-white/14"
+        )}
+      >
+        <div className="flex flex-col gap-2 text-sm text-[#f7f3ec]/66 sm:flex-row sm:items-center sm:justify-between">
+          <span>{session ? "描述任务、贴上代码，或直接给出修改目标。" : "选择会话后即可发送消息。"}</span>
+          <span>Ctrl/Cmd + Enter 发送</span>
+        </div>
+        <Textarea
+          data-testid="composer-input"
+          tone="dark"
+          className="min-h-[78px] max-h-56 resize-none border-white/10 bg-white/6 text-base leading-7 text-[#fffaf4]"
+          ref={textareaRef}
+          rows={1}
+          placeholder={session ? "输入你的需求，例如：重构这个组件并补上测试。" : "请先选择一个会话。"}
           disabled={!session || Boolean(activeRunId)}
           value={composerValue}
+          onBlur={() => setComposerFocused(false)}
           onChange={(event) => onComposerChange(event.target.value)}
+          onFocus={() => setComposerFocused(true)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
@@ -161,25 +438,35 @@ export function ChatShell({
             }
           }}
         />
-        <div className="composer-shell__actions">
-          <button
-            type="button"
-            className="ghost-button ghost-button--light"
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <Button
+            data-testid="abort-run-button"
             onClick={onAbortRun}
             disabled={!activeRunId || isAbortingRun}
+            variant="contrast"
           >
-            {isAbortingRun ? "Stopping..." : "Stop"}
-          </button>
-          <button
-            type="button"
-            className="primary-button"
+            {isAbortingRun ? "正在停止..." : "停止生成"}
+          </Button>
+          <Button
+            data-testid="send-message-button"
             onClick={onSendMessage}
             disabled={!session || isSendingMessage || Boolean(activeRunId) || !composerValue.trim()}
           >
-            {isSendingMessage ? "Sending..." : "Send"}
-          </button>
+            {isSendingMessage ? "发送中..." : "发送"}
+          </Button>
         </div>
-      </footer>
+      </Panel>
     </section>
+  );
+}
+
+function isStreamingHistoryVisible(
+  streamState: ChatStreamState,
+  hasPendingRunWithoutDelta: boolean
+): boolean {
+  return (
+    streamState.streamingRuns.length > 0 ||
+    hasPendingRunWithoutDelta ||
+    streamState.notices.length > 0
   );
 }

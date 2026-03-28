@@ -132,7 +132,7 @@ export function WorkspacePage() {
   const abortChatMutation = useMutation({
     mutationFn: abortChat,
     onSuccess: async (_, variables) => {
-      setChatUiError("Current run aborted.");
+      setChatUiError("当前生成已终止。");
       if (activeRun?.runId === variables.runId) {
         setActiveRun(null);
       }
@@ -234,7 +234,7 @@ export function WorkspacePage() {
     activeRun && activeRun.sessionId === selectedSessionId ? activeRun : null;
   const visibleMessages = mergeMessages(historyMessages, streamState.finalMessages);
   const runStateLabel = currentSessionActiveRun
-    ? `Run ${currentSessionActiveRun.runId} is generating`
+    ? `正在生成 · ${currentSessionActiveRun.runId}`
     : chatUiError;
 
   useEffect(() => {
@@ -330,38 +330,43 @@ export function WorkspacePage() {
   }
 
   return (
-    <main className="workspace-frame">
-      <div className="workspace-glow workspace-glow--left" />
-      <div className="workspace-glow workspace-glow--right" />
-      <div className="workspace-grid">
-        <NavigationRail
-          onNewChat={() => {
-            setHistoryPanelOpen(true);
-          }}
-          onToggleHistory={() => setHistoryPanelOpen((prev) => !prev)}
-          onOpenSettings={() => setDrawerOpen(true)}
-          historyOpen={historyPanelOpen}
-        />
-        <ChatShell
-          session={selectedSession}
-          messages={visibleMessages}
-          isLoadingHistory={historyQuery.isPending}
-          historyErrorMessage={historyErrorMessage}
-          composerValue={composerValue}
-          onComposerChange={setComposerValue}
-          onSendMessage={() => {
-            void handleSendMessage();
-          }}
-          isSendingMessage={sendChatMutation.isPending}
-          activeRunId={currentSessionActiveRun?.runId ?? null}
-          runStateLabel={runStateLabel}
-          onAbortRun={() => {
-            void handleAbortRun();
-          }}
-          isAbortingRun={abortChatMutation.isPending}
-          streamState={streamState}
-          onOpenSettings={() => setDrawerOpen(true)}
-        />
+    <main className="relative min-h-screen overflow-hidden">
+      <div className="pointer-events-none absolute top-4 left-[-4rem] h-72 w-72 rounded-full bg-[#c45a2c]/18 blur-[72px] motion-reduce:blur-none" />
+      <div className="pointer-events-none absolute right-[-5rem] bottom-10 h-80 w-80 rounded-full bg-[#13586d]/16 blur-[88px] motion-reduce:blur-none" />
+
+      <div className="relative mx-auto flex min-h-screen max-w-[1680px] p-3 md:p-5">
+        <div className="grid min-h-[calc(100vh-1.5rem)] w-full grid-cols-1 gap-3 rounded-[34px] border border-white/55 bg-[rgba(255,252,248,0.58)] shadow-[0_36px_100px_rgba(22,34,45,0.16)] backdrop-blur-[20px] lg:grid-cols-[88px,minmax(0,1fr)] lg:gap-0 motion-reduce:backdrop-blur-none">
+          <div className="p-3 pb-0 lg:p-4">
+            <NavigationRail
+              onNewChat={() => {
+                setHistoryPanelOpen(true);
+              }}
+              onToggleHistory={() => setHistoryPanelOpen((prev) => !prev)}
+              onOpenSettings={() => setDrawerOpen(true)}
+              historyOpen={historyPanelOpen}
+            />
+          </div>
+          <ChatShell
+            session={selectedSession}
+            messages={visibleMessages}
+            isLoadingHistory={historyQuery.isPending}
+            historyErrorMessage={historyErrorMessage}
+            composerValue={composerValue}
+            onComposerChange={setComposerValue}
+            onSendMessage={() => {
+              void handleSendMessage();
+            }}
+            isSendingMessage={sendChatMutation.isPending}
+            activeRunId={currentSessionActiveRun?.runId ?? null}
+            runStateLabel={runStateLabel}
+            onAbortRun={() => {
+              void handleAbortRun();
+            }}
+            isAbortingRun={abortChatMutation.isPending}
+            streamState={streamState}
+            onOpenSettings={() => setDrawerOpen(true)}
+          />
+        </div>
       </div>
 
       <SessionPanel

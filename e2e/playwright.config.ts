@@ -34,7 +34,7 @@ export default defineConfig({
     },
     {
       command: "npm run dev:frontend --prefix ..",
-      url: baseURL,
+      url: `${baseURL}/__health`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000
     }
