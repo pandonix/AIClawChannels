@@ -139,24 +139,27 @@ export function ChatShell({
   }, [composerValue, composerFocused]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4 p-3 md:p-5" data-testid="chat-shell">
+    <section
+      className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 p-3 md:p-3"
+      data-testid="chat-shell"
+    >
       <Panel
-        padding="lg"
+        padding="none"
         tone="soft"
-        className="flex flex-col gap-4 border-white/65 bg-[rgba(255,250,243,0.82)] md:flex-row md:items-start md:justify-between"
+        className="flex flex-col gap-2 border-white/65 bg-[rgba(255,250,243,0.82)] px-5 py-3 md:flex-row md:items-start md:justify-between"
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b3211]">
               协作工作台
             </p>
-            <h2 className="font-display text-[clamp(1.8rem,4vw,2.6rem)] leading-none tracking-[-0.05em] text-[#1f262f]">
+            <h2 className="font-display text-[clamp(1.6rem,3.2vw,2.35rem)] leading-none tracking-[-0.05em] text-[#1f262f]">
               <span data-testid="chat-title">
-              {session?.title ?? "选择一个会话开始协作"}
+                {session?.title ?? "选择一个会话开始协作"}
               </span>
             </h2>
           </div>
-          <p className="max-w-2xl text-sm leading-6 text-[#5d6973]">
+          <p className="max-w-xl text-sm leading-6 text-[#5d6973]">
             {session
               ? "支持 Markdown、代码块和流式回复，时间线会在当前轮次有事件时自动展开。"
               : "左侧打开历史会话，或新建一个会话后，把任务、代码和修改目标直接发给 AI。"}
@@ -184,11 +187,11 @@ export function ChatShell({
 
       <section
         className={cn(
-          "grid min-h-0 flex-1 gap-4",
+          "grid min-h-0 gap-4",
           timelineOpen && hasTimelineContent ? "xl:grid-cols-[minmax(0,1fr)_22rem]" : "grid-cols-1"
         )}
       >
-        <div className="flex min-h-0 flex-col gap-4">
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-1.5">
           <div className="flex flex-wrap items-center gap-3">
             <Button
               className="gap-2"
@@ -216,11 +219,11 @@ export function ChatShell({
           <Panel
             padding="none"
             tone="soft"
-            className="relative flex min-h-0 flex-1 flex-col overflow-hidden border-white/65 bg-[rgba(255,252,248,0.76)]"
+            className="relative flex min-h-0 min-h-[18rem] flex-col overflow-hidden border-white/65 bg-[rgba(255,252,248,0.76)] md:min-h-0"
           >
             <div
               data-testid="message-list"
-              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-6 md:py-6"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-5 md:py-4"
               onScroll={handleScroll}
               ref={listRef}
             >
@@ -404,21 +407,21 @@ export function ChatShell({
       </section>
 
       <Panel
-        padding="lg"
+        padding="none"
         tone="dark"
         className={cn(
-          "gap-4 bg-[linear-gradient(180deg,rgba(31,38,47,0.98)_0%,rgba(38,47,59,0.94)_70%,rgba(47,56,66,0.98)_100%)]",
+          "gap-2 bg-[linear-gradient(180deg,rgba(31,38,47,0.98)_0%,rgba(38,47,59,0.94)_70%,rgba(47,56,66,0.98)_100%)] px-5 py-3",
           composerFocused && "ring-1 ring-white/14"
         )}
       >
-        <div className="flex flex-col gap-2 text-sm text-[#f7f3ec]/66 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1 text-[13px] text-[#f7f3ec]/66 sm:flex-row sm:items-center sm:justify-between">
           <span>{session ? "描述任务、贴上代码，或直接给出修改目标。" : "选择会话后即可发送消息。"}</span>
           <span>Ctrl/Cmd + Enter 发送</span>
         </div>
         <Textarea
           data-testid="composer-input"
           tone="dark"
-          className="min-h-[78px] max-h-56 resize-none border-white/10 bg-white/6 text-base leading-7 text-[#fffaf4]"
+          className="min-h-[52px] max-h-40 resize-none border-white/10 bg-white/6 text-base leading-7 text-[#fffaf4]"
           ref={textareaRef}
           rows={1}
           placeholder={session ? "输入你的需求，例如：重构这个组件并补上测试。" : "请先选择一个会话。"}
@@ -439,6 +442,7 @@ export function ChatShell({
             data-testid="abort-run-button"
             onClick={onAbortRun}
             disabled={!activeRunId || isAbortingRun}
+            size="sm"
             variant="contrast"
           >
             {isAbortingRun ? "正在停止..." : "停止生成"}
@@ -447,6 +451,7 @@ export function ChatShell({
             data-testid="send-message-button"
             onClick={onSendMessage}
             disabled={!session || isSendingMessage || Boolean(activeRunId) || !composerValue.trim()}
+            size="sm"
           >
             {isSendingMessage ? "发送中..." : "发送"}
           </Button>

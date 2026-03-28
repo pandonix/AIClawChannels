@@ -31,6 +31,20 @@ test("场景1: 创建新会话后出现在列表中并自动选中", async ({ pa
   await expect(page.getByTestId("chat-title")).toContainText(name);
 });
 
+test("场景1: 主对话区在桌面端保留主要高度", async ({ page }) => {
+  const name = `布局测试-${Date.now()}`;
+  await createSession(page, name);
+
+  const messageListBox = await page.getByTestId("message-list").boundingBox();
+  const composerBox = await page.getByTestId("composer-input").boundingBox();
+
+  expect(messageListBox).not.toBeNull();
+  expect(composerBox).not.toBeNull();
+
+  expect(messageListBox!.height).toBeGreaterThan(280);
+  expect(messageListBox!.height).toBeGreaterThan(composerBox!.height * 1.8);
+});
+
 test("场景1: 重命名会话后标题更新", async ({ page }) => {
   const name = `重命名测试-${Date.now()}`;
   await createSession(page, name);

@@ -335,7 +335,7 @@ export function WorkspacePage() {
       <div className="pointer-events-none absolute right-[-5rem] bottom-10 h-80 w-80 rounded-full bg-[#13586d]/16 blur-[88px] motion-reduce:blur-none" />
 
       <div className="relative mx-auto flex h-full max-w-[1680px] p-3 md:p-5">
-        <div className="grid h-full w-full grid-cols-1 gap-2 rounded-[34px] border border-white/55 bg-[rgba(255,252,248,0.58)] shadow-[0_36px_100px_rgba(22,34,45,0.16)] backdrop-blur-[20px] lg:grid-cols-[88px,minmax(0,1fr)] lg:gap-0 motion-reduce:backdrop-blur-none">
+        <div className="grid h-full w-full grid-cols-1 gap-2 rounded-[34px] border border-white/55 bg-[rgba(255,252,248,0.58)] shadow-[0_36px_100px_rgba(22,34,45,0.16)] backdrop-blur-[20px] lg:grid-cols-[88px_minmax(0,1fr)] lg:gap-0 motion-reduce:backdrop-blur-none">
           <div className="p-2 pb-0 lg:p-4">
             <NavigationRail
               onNewChat={() => {
