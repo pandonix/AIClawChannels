@@ -14,7 +14,6 @@ import {
   useScrollAnchor
 } from "./ui/scroll-anchor";
 import { StatusPill } from "./ui/status-pill";
-import { StreamingCursor } from "./ui/streaming-cursor";
 import { Textarea } from "./ui/textarea";
 
 interface ChatShellProps {
@@ -189,7 +188,7 @@ export function ChatShell({
           timelineOpen && hasTimelineContent ? "xl:grid-cols-[minmax(0,1fr)_22rem]" : "grid-cols-1"
         )}
       >
-        <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
+        <div className="flex min-h-0 flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Button
               className="gap-2"
@@ -306,10 +305,7 @@ export function ChatShell({
                     <span>生成中 {run.runId}</span>
                   </div>
                   {run.text ? (
-                    <div className="flex items-end">
-                      <MarkdownRenderer content={run.text} />
-                      <StreamingCursor />
-                    </div>
+                    <MarkdownRenderer content={run.text} showCursor />
                   ) : (
                     <div className="grid gap-3">
                       <Skeleton className="h-5 max-w-[18rem]" />
@@ -366,7 +362,7 @@ export function ChatShell({
           <Panel
             padding="md"
             tone="elevated"
-            className="order-1 flex min-h-[16rem] flex-col gap-4 border-white/70 bg-[rgba(255,252,248,0.9)] xl:order-2 xl:min-h-0"
+            className="flex max-h-[20rem] flex-col gap-4 border-white/70 bg-[rgba(255,252,248,0.9)] xl:max-h-none"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">

@@ -232,7 +232,7 @@ export function SessionPanel({
                             <button
                               data-testid={isActive ? "session-card-active" : "session-card"}
                               type="button"
-                              className={`flex w-full flex-col gap-3 rounded-[24px] border px-4 py-4 text-left transition-[background-color,border-color,transform,box-shadow] duration-200 ${
+                              className={`flex w-full flex-col gap-3 rounded-[24px] border px-4 py-4 text-left transition-[background-color,border-color,transform,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f7b488]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f262f] ${
                                 isActive
                                   ? "border-[#f7b488]/20 bg-white/12 shadow-[0_22px_46px_rgba(16,24,31,0.24)]"
                                   : "border-white/6 bg-white/4 hover:border-white/12 hover:bg-white/7"
