@@ -49,6 +49,7 @@ export function TopBar({
         <Popover>
           <PopoverTrigger asChild>
             <button
+              aria-label={`Connection status ${connectionStatus}`}
               type="button"
               className={`rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] transition ${connectionTone[connectionStatus]}`}
             >

@@ -1,63 +1,63 @@
 # AIClawChannels
 
-基于 OpenClaw Gateway 的自定义 Web Channel backend。
+基于 OpenClaw Gateway 的自定义 Web Channel workspace。
 
-当前仓库已经删除旧前端实现，现阶段应把 backend、共享 contract 和本文档视为项目基线；后续新前端需要围绕它们重新搭建。
+当前仓库已经完成 desktop Web 前端重建 MVP。前端只对接 backend 暴露的 HTTP / SSE contract，不直接访问 Gateway。
 
-## 当前项目范围
+## 当前范围
 
-当前保留并可作为事实来源的部分只有：
-
+- `frontend/`: React + TypeScript + Vite + Tailwind 的桌面端聊天工作台
 - `backend/`: Fastify 服务，负责会话 API、聊天 API、SSE、Gateway 接线和 mock runtime
 - `packages/contracts/`: 前后端共享 DTO 与 SSE 事件类型
-- `docs/api-contract.md`: 现行 HTTP/SSE 契约
-- `e2e/`: 旧 MVP 的交互目标记录；因为前端已移除，当前不能直接作为可运行验证
-
-已经不应再作为当前项目依据的内容：
-
-- 旧前端页面结构与交互实现
-- 已删除的设计/重构文档
+- `docs/api-contract.md`: 当前 HTTP / SSE 契约
+- `e2e/`: 基于 Playwright 的前端主链路验证
 
 ## 架构边界
 
 ```text
-Future Frontend Web UI <-> Custom Backend (HTTP/SSE) <-> OpenClaw Gateway (WS)
+Frontend Web UI <-> Custom Backend (HTTP/SSE) <-> OpenClaw Gateway (WS)
 ```
 
 约束保持不变：
 
 - 前端不直接访问 Gateway
 - backend 统一处理 Gateway 握手、鉴权、重连、事件映射和 sessionKey 管理
-- 新前端只面向 backend 的业务 API 和 SSE contract 开发
+- 前端只面向 backend 的业务 API 和 SSE contract 开发
 
-## 当前目录结构
+## 目录结构
 
 ```text
 .
+├── frontend/
+│   └── src/
+│       ├── components/            # 布局与 UI 原语
+│       ├── config/                # 运行环境配置
+│       ├── features/workbench/    # 会话、聊天、SSE 工作台
+│       └── lib/                   # HTTP / SSE / utils
 ├── backend/
 │   └── src/
-│       ├── app.ts                  # Fastify 入口与 runtime 装配
-│       ├── chat/                   # 聊天服务
-│       ├── config/                 # 环境变量加载
-│       ├── event-bus/              # SSE 事件订阅与 Gateway 事件映射
-│       ├── gateway/                # Gateway WS 客户端、鉴权、重连
-│       ├── mock/                   # 本地 mock gateway
-│       ├── routes/                 # HTTP/SSE 路由
-│       ├── runtime/                # mock / gateway runtime 适配层
-│       └── sessions/               # 会话服务
+│       ├── app.ts
+│       ├── chat/
+│       ├── config/
+│       ├── event-bus/
+│       ├── gateway/
+│       ├── mock/
+│       ├── routes/
+│       ├── runtime/
+│       └── sessions/
 ├── docs/
-│   └── api-contract.md             # 当前 API / SSE 契约
-├── e2e/                            # 旧前端 MVP 目标用例，当前缺少运行前提
+│   ├── api-contract.md
+│   └── frontend-design-plan.md
+├── e2e/
+│   └── tests/
 ├── packages/
 │   └── contracts/
-│       └── src/index.ts            # DTO 与 SSE 类型
-├── package.json                    # 根工作区配置，仍残留 frontend 相关项
-└── tsconfig.base.json              # @contracts 路径映射
+└── package.json
 ```
 
-## 当前后端能力
+## 当前 backend 能力
 
-已实现并可供新前端直接对接的能力：
+HTTP:
 
 - `GET /api/sessions`
 - `POST /api/sessions`
@@ -80,22 +80,31 @@ SSE 事件：
 
 - `POST /dev/sse-disconnect`
 
-具体字段、错误响应和运行语义见 [docs/api-contract.md](docs/api-contract.md)。
+具体字段和行为见 [docs/api-contract.md](docs/api-contract.md)。
 
-## 本地运行 backend
+## 本地运行
 
-由于当前仓库已经删除 `frontend/`，根目录工作区脚本和 `package.json` 里仍有部分 frontend 残留配置，不应再把根目录脚本当作当前可靠入口。
-
-推荐直接在 `backend/` 目录运行：
+先安装依赖：
 
 ```bash
-cd backend
 npm install
-npm run dev
 ```
 
-默认监听：
+启动 backend：
 
+```bash
+npm run dev:backend
+```
+
+启动 frontend：
+
+```bash
+npm run dev:frontend
+```
+
+默认地址：
+
+- frontend: `http://localhost:3000`
 - backend: `http://localhost:3001`
 
 健康检查：
@@ -104,35 +113,44 @@ npm run dev
 curl http://localhost:3001/health
 ```
 
+前端环境变量示例见 [frontend/.env.example](frontend/.env.example)。
+
+## 根工作区脚本
+
+```bash
+npm run build
+npm run typecheck
+npm run dev:backend
+npm run dev:frontend
+npm run test:e2e
+npm run test:e2e:ui
+```
+
 ## 连接模式
 
 ### Mock mode
 
-默认配置：
+默认开发配置：
 
 ```bash
-cd backend
-MOCK_GATEWAY=true npm run dev
+MOCK_GATEWAY=true npm run dev:backend
 ```
 
 特点：
 
 - 不连接真实 Gateway
 - 启动后可直接使用会话、聊天和 SSE
-- 默认包含一个种子会话，便于新前端先做联调
+- 默认带一个种子会话，便于前端联调
 
 ### Gateway mode
 
-连接真实 Gateway：
-
 ```bash
-cd backend
 MOCK_GATEWAY=false \
 GATEWAY_OPERATOR_TOKEN=your_gateway_token \
-npm run dev
+npm run dev:backend
 ```
 
-如果你的 Gateway 使用 password 或 device token，也可以补充对应环境变量。
+如果 Gateway 使用 password 或 device token，也可以补充对应环境变量。frontend 仍然只连 backend。
 
 ## 环境变量
 
@@ -148,21 +166,36 @@ npm run dev
 | `GATEWAY_SCOPES` | `operator.read,operator.write` | Gateway scopes，逗号分隔 |
 | `GATEWAY_TLS_FINGERPRINT` | - | `wss://` 证书指纹校验 |
 | `GATEWAY_DEVICE_IDENTITY_PATH` | - | device 身份文件持久化路径 |
+| `VITE_API_BASE_URL` | `http://localhost:3001` | frontend API base URL |
 
-## 现阶段约束
+## E2E 验证
 
-- 当前没有可运行的前端实现；新前端需要从零开始重建
+运行 Playwright：
+
+```bash
+npm run test:e2e
+```
+
+当前 e2e 覆盖：
+
+- 会话创建、重命名与自动选中
+- Drawer / Dialog / Settings 的键盘交互
+- Composer 发送与 Stop 中止
+- SSE 断线重连
+- `message.final` 丢失窗口下的 history backfill
+- 连接诊断浮层展示
+
+## 当前约束
+
 - `packages/contracts` 目前只是源码目录，不是独立发布包
-- session 列表、会话 patch、run 幂等记录等都仍以进程内内存状态为主
+- session 列表、会话 patch、run 幂等记录等仍以进程内内存状态为主
 - `gateway` 模式下的 `POST /api/sessions` 目前是 backend 本地创建会话元数据，不等同于持久化创建远端会话
 - `agentId` 已进合同，但暂未形成完整业务语义
-- `e2e/` 用例保留的是最早 MVP 交互目标，不代表当前仓库已经具备可执行的前端
+- 当前前端只按 desktop Web 设计，不做移动端适配
 
-## 下一步前端重建建议
-
-如果接下来要重建前端，当前最稳的输入顺序是：
+## 继续迭代时的对齐输入
 
 1. 以 [docs/api-contract.md](docs/api-contract.md) 为接口合同。
 2. 以 [packages/contracts/src/index.ts](packages/contracts/src/index.ts) 为类型来源。
 3. 以 [backend/src/routes/chat.ts](backend/src/routes/chat.ts)、[backend/src/routes/sessions.ts](backend/src/routes/sessions.ts)、[backend/src/routes/stream.ts](backend/src/routes/stream.ts) 为实际行为基准。
-4. 以 `e2e/` 中的旧场景作为交互目标参考，而不是当前实现现状。
+4. 以 `e2e/` 里的 Playwright 场景作为当前 MVP 验证基线。

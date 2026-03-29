@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import { Button } from "../../../components/ui/button";
 import {
   Dialog,
@@ -44,6 +45,11 @@ export function NewSessionDialog({
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleCreate();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -54,12 +60,13 @@ export function NewSessionDialog({
           通过 `POST /api/sessions` 创建会话，创建成功后会立即切换到新会话并重建历史 / SSE。
         </DialogDescription>
 
-        <div className="mt-6 space-y-4">
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <label className="block">
             <span className="mb-2 block font-display text-xs uppercase tracking-[0.28em] text-ink-300">
               Session Name
             </span>
             <input
+              autoFocus
               className="w-full rounded-[20px] border border-white/10 bg-black/15 px-4 py-3 text-sm text-ink-100 outline-none"
               placeholder="新的会话"
               value={name}
@@ -74,14 +81,14 @@ export function NewSessionDialog({
           ) : null}
 
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void handleCreate()} disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Creating" : "Create"}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { PatchSessionRequest, SessionSummary } from "@contracts";
 import { Button } from "../../../components/ui/button";
 import {
@@ -53,6 +53,11 @@ export function SessionSettingsSheet({
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSave();
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right">
@@ -63,12 +68,13 @@ export function SessionSettingsSheet({
           右侧抽屉已经落位，后续会在 M3 接入标题与 `agentId` 的真实 patch 流程。
         </SheetDescription>
 
-        <div className="mt-6 space-y-5">
+        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           <label className="block">
             <span className="mb-2 block font-display text-xs uppercase tracking-[0.28em] text-ink-300">
               Title
             </span>
             <input
+              autoFocus
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               className="w-full rounded-[20px] border border-white/10 bg-black/15 px-4 py-3 text-sm text-ink-100 outline-none"
@@ -105,17 +111,17 @@ export function SessionSettingsSheet({
           </dl>
 
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button
-              onClick={() => void handleSave()}
+              type="submit"
               disabled={!session || isSubmitting}
             >
               {isSubmitting ? "Saving" : "Save"}
             </Button>
           </div>
-        </div>
+        </form>
       </SheetContent>
     </Sheet>
   );

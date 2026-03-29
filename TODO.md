@@ -65,10 +65,10 @@
 
 ### M6 视觉收口与验证
 
-- [ ] 按设计方案收口桌面端视觉细节，确保聊天区是主视觉中心，管理能力隐入抽屉/浮层。
-- [ ] 完成关键交互的可访问性与键盘操作校验，至少覆盖 Drawer、Dialog、Composer、发送/停止主链路。
-- [ ] 更新或重建 e2e 用例，使其验证当前重建后的前端主链路，而不是依赖旧 DOM 结构。
-- [ ] 补充前端运行说明与联调说明，确保新成员可按文档启动 frontend + backend。
+- [x] 按设计方案收口桌面端视觉细节，确保聊天区是主视觉中心，管理能力隐入抽屉/浮层。
+- [x] 完成关键交互的可访问性与键盘操作校验，至少覆盖 Drawer、Dialog、Composer、发送/停止主链路。
+- [x] 更新或重建 e2e 用例，使其验证当前重建后的前端主链路，而不是依赖旧 DOM 结构。
+- [x] 补充前端运行说明与联调说明，确保新成员可按文档启动 frontend + backend。
 
 ## 完成标准
 
@@ -86,3 +86,4 @@
 - 2026-03-29: 完成 M3 会话域能力，接通 sessions list / create / patch / history / session switch，并在切换时重建 SSE 连接；验证通过 `npm run typecheck --workspace frontend`、`npm run build --workspace frontend`，以及对本地 `http://localhost:3001` 的 `GET /health`、`GET /api/sessions`、`GET /api/chat/history`、`POST /api/sessions`、`PATCH /api/sessions/:id` 烟测。
 - 2026-03-29: 完成 M4 聊天主链路，接通 `POST /api/chat/send`、`POST /api/chat/abort` 与 SSE `agent.event` / `message.delta` / `message.final` / `run.aborted` / `run.error` 的前端状态收敛；验证通过 `npm run typecheck`、`npm run build`，并对本地 `http://localhost:3001` 完成 `send -> delta/final` 与 `send -> abort -> run.aborted` 烟测。当前 mock runtime 未稳定提供 `run.error` 触发入口，因此该路径本轮以代码接线与状态收敛检查为主。
 - 2026-03-29: 完成 M5 SSE 稳定性与诊断，补齐连接状态展示、自动重连后的 UI 收敛、history backfill 兜底与 diagnostics 浮层错误信息；验证通过 `npm run typecheck`、`npm run build`，以及基于 Playwright 的 `SSE disconnect -> reconnect -> open` 浏览器烟测和“run 中途断线后通过 history backfill 收敛到最终 assistant 消息”的浏览器烟测。
+- 2026-03-29: 完成 M6 视觉收口与验证，补齐关键交互的语义与键盘路径，更新 README 运行说明，并重建 Playwright 用例以覆盖当前工作台主链路；验证通过 `npm run typecheck`、`npm run build`、`npm run test:e2e`。

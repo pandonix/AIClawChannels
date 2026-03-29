@@ -49,7 +49,10 @@ export function SessionsSheet({
 
         <div className="mt-6 space-y-3">
           {status === "loading" ? (
-            <div className="rounded-[24px] border border-white/10 bg-black/15 px-4 py-4 text-sm text-ink-200">
+            <div
+              aria-live="polite"
+              className="rounded-[24px] border border-white/10 bg-black/15 px-4 py-4 text-sm text-ink-200"
+            >
               正在读取会话列表...
             </div>
           ) : null}
@@ -67,6 +70,8 @@ export function SessionsSheet({
               <button
                 key={session.id}
                 type="button"
+                aria-current={selected ? "true" : undefined}
+                aria-label={`Open session ${session.title}`}
                 onClick={() => onSelectSession(session.id)}
                 className={cn(
                   "block w-full rounded-[24px] border px-4 py-4 text-left transition",

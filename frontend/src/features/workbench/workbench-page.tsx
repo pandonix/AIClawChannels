@@ -272,6 +272,8 @@ export function WorkbenchPage() {
 
     dispatch({ type: "sessions/upsert", session });
     dispatch({ type: "session/select", sessionId: session.id });
+    dispatch({ type: "ui/setSheet", sheet: "newSession", open: false });
+    dispatch({ type: "ui/setSheet", sheet: "sessions", open: false });
   };
 
   const handleSaveSession = async (input: PatchSessionRequest) => {

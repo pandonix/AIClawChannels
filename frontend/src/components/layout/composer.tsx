@@ -41,6 +41,7 @@ export function Composer({
               Composer
             </span>
             <textarea
+              aria-describedby="composer-hint"
               className="min-h-28 w-full resize-none rounded-[22px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-7 text-ink-100 outline-none placeholder:text-ink-300/70"
               value={draft}
               onChange={handleChange}
@@ -63,7 +64,7 @@ export function Composer({
           <p className="font-display text-xs uppercase tracking-[0.3em] text-ink-300">
             Interaction Status
           </p>
-          <p className="mt-3 text-sm leading-7 text-ink-200">
+          <p id="composer-hint" className="mt-3 text-sm leading-7 text-ink-200">
             当前 run 状态为 <span className="font-mono uppercase">{activeRunStatus}</span>。
             发送、停止和流式收敛已经接入 contract；若 SSE 或 run 失败，错误会以局部 notice 形式留在消息流里。
           </p>

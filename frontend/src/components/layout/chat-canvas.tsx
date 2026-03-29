@@ -66,7 +66,11 @@ export function ChatCanvas({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-6">
+      <div
+        aria-busy={historyStatus === "loading"}
+        aria-live="polite"
+        className="flex-1 overflow-y-auto px-5 py-6"
+      >
         <div className="mx-auto flex max-w-[980px] flex-col gap-5">
           <div className="self-center rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.24em] text-ink-300">
             {sessionId ? `Session ${sessionId}` : "No Session Selected"}
