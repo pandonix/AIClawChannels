@@ -33,9 +33,9 @@
 
 ### M2 应用基础设施
 
-- [ ] 建立前端目录结构与核心基础层：`app shell`、路由入口、状态管理方案、请求封装、SSE 客户端封装。
-- [ ] 建立统一的异步状态模型：loading、empty、error、reconnecting、activeRun，避免后续组件各自维护分裂状态。
-- [ ] 建立基础 UI 原语与布局骨架：Top Bar、Chat Canvas、Composer、Drawer、Dialog、Popover 所需的通用组件封装。
+- [x] 建立前端目录结构与核心基础层：`app shell`、路由入口、状态管理方案、请求封装、SSE 客户端封装。
+- [x] 建立统一的异步状态模型：loading、empty、error、reconnecting、activeRun，避免后续组件各自维护分裂状态。
+- [x] 建立基础 UI 原语与布局骨架：Top Bar、Chat Canvas、Composer、Drawer、Dialog、Popover 所需的通用组件封装。
 
 ### M3 会话域能力
 
@@ -82,3 +82,4 @@
 
 - 2026-03-29: 初始化本 TODO，完成前端重建任务分解，并建立逐任务提交规则。
 - 2026-03-29: 完成 M1 前端工程初始化，新增 `frontend/` React + TypeScript + Vite 工作区，接入 Tailwind CSS、`@contracts` 类型与 `VITE_API_BASE_URL` 配置；验证通过 `npm run typecheck`、`npm run build`。
+- 2026-03-29: 完成 M2 应用基础设施，建立路由入口、workbench 全局状态、HTTP/SSE 基础封装与 Drawer / Dialog / Popover 等 UI 原语；验证通过 `npm run typecheck`、`npm run build --workspace frontend`。
