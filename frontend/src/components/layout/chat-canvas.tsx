@@ -1,4 +1,7 @@
-import type { ResourceStatus } from "../../features/workbench/workbench-state";
+import type {
+  ActiveRunStatus,
+  ResourceStatus,
+} from "../../features/workbench/workbench-state";
 import type { AgentEvent, ChatMessage, MessageDeltaEvent } from "@contracts";
 
 const messageTone = {
@@ -24,6 +27,7 @@ function formatTime(isoTime: string) {
 }
 
 interface ChatCanvasProps {
+  activeRunStatus: ActiveRunStatus;
   messages: ChatMessage[];
   liveMessage: MessageDeltaEvent | null;
   agentEvents: AgentEvent[];
@@ -33,6 +37,7 @@ interface ChatCanvasProps {
 }
 
 export function ChatCanvas({
+  activeRunStatus,
   messages,
   liveMessage,
   agentEvents,
@@ -42,6 +47,8 @@ export function ChatCanvas({
 }: ChatCanvasProps) {
   const showEmptyState =
     historyStatus === "empty" && messages.length === 0 && !liveMessage;
+  const showRunPanel =
+    Boolean(liveMessage) || agentEvents.length > 0 || activeRunStatus !== "idle";
 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/8 bg-canvas-950/85">
@@ -138,19 +145,21 @@ export function ChatCanvas({
               })
             : null}
 
-          {liveMessage ? (
+          {showRunPanel ? (
             <article className="rounded-[30px] border border-accent-300/15 bg-[linear-gradient(135deg,rgba(29,198,255,0.16),rgba(8,15,23,0.92)_46%,rgba(8,15,23,0.97))] px-5 py-5 shadow-[0_28px_90px_rgba(3,10,20,0.52)]">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full border border-accent-300/30 bg-accent-400/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-accent-300">
-                  message.delta
+                  {liveMessage ? "message.delta" : "run.active"}
                 </span>
                 <span className="font-mono text-xs text-ink-300">
-                  {liveMessage.runId}
+                  {liveMessage?.runId ?? "pending"}
                 </span>
               </div>
               <p className="mt-4 text-base leading-8 text-ink-50">
-                {liveMessage.delta}
-                <span className="ml-1 inline-flex h-[1.05em] w-[0.62ch] animate-pulse rounded-sm bg-accent-300 align-middle" />
+                {liveMessage?.delta ?? "Run accepted. Waiting for agent events or first delta..."}
+                {liveMessage ? (
+                  <span className="ml-1 inline-flex h-[1.05em] w-[0.62ch] animate-pulse rounded-sm bg-accent-300 align-middle" />
+                ) : null}
               </p>
               <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-3">
                 {agentEvents.map((event) => (
@@ -181,7 +190,7 @@ export function ChatCanvas({
                 No Live Run
               </p>
               <p className="mt-3 text-sm leading-7 text-ink-200">
-                M2 先完成状态与组件骨架，真正的 send / stream / final 流程会在后续里程碑接入。
+                当前没有活动 run。发送消息后，这里会显示 delta 与 agent timeline。
               </p>
             </div>
           )}

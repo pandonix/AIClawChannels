@@ -1,10 +1,15 @@
 import type {
+  AbortChatRequest,
+  AbortChatResponse,
+  AnySseEvent,
   ChatHistoryResponse,
   CreateSessionRequest,
   CreateSessionResponse,
   ListSessionsResponse,
   PatchSessionRequest,
   PatchSessionResponse,
+  SendChatRequest,
+  SendChatResponse,
 } from "@contracts";
 import { useEffect } from "react";
 import { ChatCanvas } from "../../components/layout/chat-canvas";
@@ -17,6 +22,61 @@ import { useWorkbench } from "./workbench-provider";
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "unexpected request failure";
+}
+
+function createClientRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function handleStreamEvent(event: AnySseEvent, dispatch: ReturnType<typeof useWorkbench>["dispatch"]) {
+  switch (event.event) {
+    case "agent.event":
+      dispatch({ type: "agent/event", event: event.data });
+      return;
+
+    case "message.delta":
+      dispatch({
+        type: "live/update",
+        createdAt: event.data.createdAt,
+        delta: event.data.delta,
+        runId: event.data.runId,
+        sessionId: event.data.sessionId,
+      });
+      return;
+
+    case "message.final":
+      dispatch({
+        type: "run/final",
+        message: event.data.message,
+        runId: event.data.runId,
+      });
+      return;
+
+    case "run.aborted":
+      dispatch({
+        type: "run/aborted",
+        createdAt: event.data.createdAt,
+        runId: event.data.runId,
+      });
+      return;
+
+    case "run.error":
+      dispatch({
+        type: "run/error",
+        createdAt: event.data.createdAt,
+        error: event.data.error,
+        runId: event.data.runId,
+      });
+      dispatch({ type: "connection/setStatus", status: "error" });
+      return;
+
+    default:
+      return;
+  }
 }
 
 export function WorkbenchPage() {
@@ -95,6 +155,13 @@ export function WorkbenchPage() {
 
         dispatch({ type: "connection/setStatus", status: "open" });
       },
+      onEvent: (event) => {
+        if (cancelled) {
+          return;
+        }
+
+        handleStreamEvent(event, dispatch);
+      },
     });
 
     const loadHistory = async () => {
@@ -160,6 +227,109 @@ export function WorkbenchPage() {
     dispatch({ type: "sessions/upsert", session });
   };
 
+  const handleSend = async () => {
+    if (!currentSession) {
+      return;
+    }
+
+    const message = state.draft.trim();
+
+    if (!message || state.activeRun.status !== "idle") {
+      return;
+    }
+
+    const clientRequestId = createClientRequestId();
+    const createdAt = new Date().toISOString();
+
+    dispatch({
+      type: "history/appendMessage",
+      message: {
+        createdAt,
+        id: `local-user-${clientRequestId}`,
+        role: "user",
+        text: message,
+      },
+    });
+    dispatch({ type: "composer/setDraft", draft: "" });
+
+    try {
+      const response = await apiClient.post<SendChatResponse, SendChatRequest>(
+        "/api/chat/send",
+        {
+          clientRequestId,
+          message,
+          sessionId: currentSession.id,
+        },
+      );
+
+      dispatch({ type: "run/start", runId: response.runId });
+    } catch (error) {
+      dispatch({
+        type: "diagnostics/setError",
+        error: toErrorMessage(error),
+      });
+      dispatch({
+        type: "history/appendMessage",
+        message: {
+          createdAt: new Date().toISOString(),
+          id: `send-error-${clientRequestId}`,
+          role: "system",
+          text: `Send failed: ${toErrorMessage(error)}`,
+        },
+      });
+      dispatch({ type: "run/setStatus", runId: null, status: "idle" });
+      dispatch({ type: "composer/setDraft", draft: message });
+    }
+  };
+
+  const handleStop = async () => {
+    if (!currentSession || !state.activeRun.runId) {
+      return;
+    }
+
+    dispatch({
+      type: "run/setStatus",
+      runId: state.activeRun.runId,
+      status: "stopping",
+    });
+
+    try {
+      await apiClient.post<AbortChatResponse, AbortChatRequest>("/api/chat/abort", {
+        runId: state.activeRun.runId,
+        sessionId: currentSession.id,
+      });
+    } catch (error) {
+      dispatch({
+        type: "diagnostics/setError",
+        error: toErrorMessage(error),
+      });
+      dispatch({
+        type: "history/appendMessage",
+        message: {
+          createdAt: new Date().toISOString(),
+          id: `abort-error-${state.activeRun.runId}`,
+          role: "system",
+          text: `Abort request failed: ${toErrorMessage(error)}`,
+        },
+      });
+      dispatch({
+        type: "run/setStatus",
+        runId: state.activeRun.runId,
+        status: "active",
+      });
+    }
+  };
+
+  const canSend =
+    Boolean(currentSession) &&
+    state.history.status !== "loading" &&
+    state.draft.trim().length > 0 &&
+    state.activeRun.status === "idle";
+  const canStop =
+    Boolean(currentSession) &&
+    state.activeRun.runId !== null &&
+    state.activeRun.status === "active";
+
   return (
     <div className="min-h-screen px-5 py-5 text-ink-50 sm:px-8 sm:py-8">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1480px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-canvas-900/85 shadow-workbench backdrop-blur">
@@ -210,6 +380,7 @@ export function WorkbenchPage() {
           </section>
 
           <ChatCanvas
+            activeRunStatus={state.activeRun.status}
             historyError={state.history.error}
             historyStatus={state.history.status}
             messages={state.history.data}
@@ -219,12 +390,15 @@ export function WorkbenchPage() {
           />
 
           <Composer
+            activeRunStatus={state.activeRun.status}
             draft={state.draft}
-            canSend={false}
-            canStop={false}
+            canSend={canSend}
+            canStop={canStop}
             onDraftChange={(draft) =>
               dispatch({ type: "composer/setDraft", draft })
             }
+            onSend={() => void handleSend()}
+            onStop={() => void handleStop()}
           />
         </main>
       </div>

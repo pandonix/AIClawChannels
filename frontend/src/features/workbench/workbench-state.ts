@@ -51,7 +51,54 @@ interface CreateInitialWorkbenchStateArgs {
   draft: string;
 }
 
+function toResourceState<T>(data: T[], fallback: T[]): ResourceState<T[]> {
+  return {
+    data,
+    error: null,
+    status: data.length > 0 ? "ready" : fallback.length > 0 ? "ready" : "empty",
+  };
+}
+
+function upsertMessages(
+  currentMessages: ChatMessage[],
+  nextMessages: ChatMessage[],
+) {
+  const messageById = new Map<string, ChatMessage>();
+
+  for (const message of currentMessages) {
+    messageById.set(message.id, message);
+  }
+
+  for (const message of nextMessages) {
+    messageById.set(message.id, message);
+  }
+
+  return [...messageById.values()].sort((left, right) =>
+    left.createdAt.localeCompare(right.createdAt),
+  );
+}
+
 export type WorkbenchAction =
+  | {
+      type: "agent/event";
+      event: AgentEvent;
+    }
+  | {
+      type: "composer/setDraft";
+      draft: string;
+    }
+  | {
+      type: "connection/setStatus";
+      status: ConnectionStatus;
+    }
+  | {
+      type: "diagnostics/setError";
+      error: string | null;
+    }
+  | {
+      type: "history/appendMessage";
+      message: ChatMessage;
+    }
   | {
       type: "history/error";
       error: string;
@@ -62,6 +109,45 @@ export type WorkbenchAction =
   | {
       type: "history/success";
       messages: ChatMessage[];
+    }
+  | {
+      type: "live/reset";
+    }
+  | {
+      type: "live/update";
+      createdAt: string;
+      delta: string;
+      runId: string;
+      sessionId: string;
+    }
+  | {
+      type: "run/aborted";
+      createdAt: string;
+      runId: string;
+    }
+  | {
+      type: "run/error";
+      createdAt: string;
+      error: string;
+      runId: string;
+    }
+  | {
+      type: "run/final";
+      message: ChatMessage;
+      runId: string;
+    }
+  | {
+      type: "run/setStatus";
+      runId: string | null;
+      status: ActiveRunStatus;
+    }
+  | {
+      type: "run/start";
+      runId: string;
+    }
+  | {
+      type: "session/select";
+      sessionId: string | null;
     }
   | {
       type: "sessions/error";
@@ -79,39 +165,10 @@ export type WorkbenchAction =
       session: SessionSummary;
     }
   | {
-      type: "composer/setDraft";
-      draft: string;
-    }
-  | {
-      type: "connection/setStatus";
-      status: ConnectionStatus;
-    }
-  | {
-      type: "diagnostics/setError";
-      error: string | null;
-    }
-  | {
-      type: "run/setStatus";
-      runId: string | null;
-      status: ActiveRunStatus;
-    }
-  | {
-      type: "session/select";
-      sessionId: string | null;
-    }
-  | {
       type: "ui/setSheet";
       sheet: WorkbenchSheet;
       open: boolean;
     };
-
-function toResourceState<T>(data: T[], fallback: T[]): ResourceState<T[]> {
-  return {
-    data,
-    error: null,
-    status: data.length > 0 ? "ready" : fallback.length > 0 ? "ready" : "empty",
-  };
-}
 
 export function createInitialWorkbenchState({
   apiBaseUrl,
@@ -152,6 +209,49 @@ export function workbenchReducer(
   action: WorkbenchAction,
 ): WorkbenchState {
   switch (action.type) {
+    case "agent/event":
+      return {
+        ...state,
+        activeRun: {
+          runId: action.event.runId,
+          status: state.activeRun.status === "stopping" ? "stopping" : "active",
+        },
+        agentEvents: [...state.agentEvents, action.event].sort((left, right) =>
+          left.createdAt.localeCompare(right.createdAt),
+        ),
+      };
+
+    case "composer/setDraft":
+      return {
+        ...state,
+        draft: action.draft,
+      };
+
+    case "connection/setStatus":
+      return {
+        ...state,
+        connectionStatus: action.status,
+      };
+
+    case "diagnostics/setError":
+      return {
+        ...state,
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: action.error,
+        },
+      };
+
+    case "history/appendMessage":
+      return {
+        ...state,
+        history: {
+          data: upsertMessages(state.history.data, [action.message]),
+          error: null,
+          status: "ready",
+        },
+      };
+
     case "history/error":
       return {
         ...state,
@@ -180,6 +280,152 @@ export function workbenchReducer(
           error: null,
           status: action.messages.length > 0 ? "ready" : "empty",
         },
+      };
+
+    case "live/reset":
+      return {
+        ...state,
+        agentEvents: [],
+        liveMessage: null,
+      };
+
+    case "live/update": {
+      const previousText =
+        state.liveMessage?.runId === action.runId ? state.liveMessage.delta : "";
+
+      return {
+        ...state,
+        activeRun: {
+          runId: action.runId,
+          status: state.activeRun.status === "stopping" ? "stopping" : "active",
+        },
+        liveMessage: {
+          createdAt: action.createdAt,
+          delta: `${previousText}${action.delta}`,
+          runId: action.runId,
+          sessionId: action.sessionId,
+        },
+      };
+    }
+
+    case "run/aborted":
+      return {
+        ...state,
+        activeRun: {
+          runId: null,
+          status: "idle",
+        },
+        agentEvents: [],
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: null,
+        },
+        history: {
+          data: upsertMessages(state.history.data, [
+            {
+              createdAt: action.createdAt,
+              id: `run-aborted-${action.runId}`,
+              role: "system",
+              text: "Run aborted.",
+            },
+          ]),
+          error: null,
+          status: "ready",
+        },
+        liveMessage: null,
+      };
+
+    case "run/error":
+      return {
+        ...state,
+        activeRun: {
+          runId: null,
+          status: "idle",
+        },
+        agentEvents: [],
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: action.error,
+        },
+        history: {
+          data: upsertMessages(state.history.data, [
+            {
+              createdAt: action.createdAt,
+              id: `run-error-${action.runId}`,
+              role: "system",
+              text: `Run failed: ${action.error}`,
+            },
+          ]),
+          error: null,
+          status: "ready",
+        },
+        liveMessage: null,
+      };
+
+    case "run/final":
+      return {
+        ...state,
+        activeRun: {
+          runId: null,
+          status: "idle",
+        },
+        agentEvents: [],
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: null,
+        },
+        history: {
+          data: upsertMessages(state.history.data, [action.message]),
+          error: null,
+          status: "ready",
+        },
+        liveMessage: null,
+      };
+
+    case "run/setStatus":
+      return {
+        ...state,
+        activeRun: {
+          runId: action.runId,
+          status: action.status,
+        },
+      };
+
+    case "run/start":
+      return {
+        ...state,
+        activeRun: {
+          runId: action.runId,
+          status: "active",
+        },
+        agentEvents: [],
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: null,
+        },
+        liveMessage: null,
+      };
+
+    case "session/select":
+      return {
+        ...state,
+        activeRun: {
+          runId: null,
+          status: "idle",
+        },
+        agentEvents: [],
+        diagnostics: {
+          ...state.diagnostics,
+          sessionId: action.sessionId,
+        },
+        draft: "",
+        history: {
+          data: [],
+          error: null,
+          status: action.sessionId ? "loading" : "empty",
+        },
+        liveMessage: null,
+        selectedSessionId: action.sessionId,
       };
 
     case "sessions/error":
@@ -240,58 +486,6 @@ export function workbenchReducer(
         },
       };
     }
-
-    case "composer/setDraft":
-      return {
-        ...state,
-        draft: action.draft,
-      };
-
-    case "connection/setStatus":
-      return {
-        ...state,
-        connectionStatus: action.status,
-      };
-
-    case "diagnostics/setError":
-      return {
-        ...state,
-        diagnostics: {
-          ...state.diagnostics,
-          lastError: action.error,
-        },
-      };
-
-    case "run/setStatus":
-      return {
-        ...state,
-        activeRun: {
-          runId: action.runId,
-          status: action.status,
-        },
-      };
-
-    case "session/select":
-      return {
-        ...state,
-        activeRun: {
-          runId: null,
-          status: "idle",
-        },
-        agentEvents: [],
-        diagnostics: {
-          ...state.diagnostics,
-          sessionId: action.sessionId,
-        },
-        draft: "",
-        history: {
-          data: [],
-          error: null,
-          status: action.sessionId ? "loading" : "empty",
-        },
-        liveMessage: null,
-        selectedSessionId: action.sessionId,
-      };
 
     case "ui/setSheet":
       return {

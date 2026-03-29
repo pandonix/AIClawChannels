@@ -47,14 +47,14 @@
 
 ### M4 聊天主链路
 
-- [ ] 实现聊天历史加载与消息列表渲染，覆盖空态、加载态、局部错误态。
-- [ ] 实现 Composer 输入、发送按钮、`clientRequestId` 生成与 `POST /api/chat/send` 调用。
-- [ ] 实现发送成功后的本地用户消息即时入列与 `activeRun` 状态切换。
-- [ ] 实现流式 assistant live bubble，消费 `message.delta` 并在 UI 中持续增量展示。
-- [ ] 实现 `message.final` 落地逻辑，将 live bubble 固化为正式 assistant 消息并恢复输入能力。
-- [ ] 实现 `agent.event` 的轻量时间线/折叠区展示，保持其存在但不抢占聊天主区域。
-- [ ] 实现 Stop 按钮与 `POST /api/chat/abort` 调用，在 `run.aborted` 到达后清理活动状态并插入 notice。
-- [ ] 实现 `run.error` 展示与失败恢复策略，保证错误不会把页面推进到不可恢复状态。
+- [x] 实现聊天历史加载与消息列表渲染，覆盖空态、加载态、局部错误态。
+- [x] 实现 Composer 输入、发送按钮、`clientRequestId` 生成与 `POST /api/chat/send` 调用。
+- [x] 实现发送成功后的本地用户消息即时入列与 `activeRun` 状态切换。
+- [x] 实现流式 assistant live bubble，消费 `message.delta` 并在 UI 中持续增量展示。
+- [x] 实现 `message.final` 落地逻辑，将 live bubble 固化为正式 assistant 消息并恢复输入能力。
+- [x] 实现 `agent.event` 的轻量时间线/折叠区展示，保持其存在但不抢占聊天主区域。
+- [x] 实现 Stop 按钮与 `POST /api/chat/abort` 调用，在 `run.aborted` 到达后清理活动状态并插入 notice。
+- [x] 实现 `run.error` 展示与失败恢复策略，保证错误不会把页面推进到不可恢复状态。
 
 ### M5 SSE 稳定性与诊断
 
@@ -84,3 +84,4 @@
 - 2026-03-29: 完成 M1 前端工程初始化，新增 `frontend/` React + TypeScript + Vite 工作区，接入 Tailwind CSS、`@contracts` 类型与 `VITE_API_BASE_URL` 配置；验证通过 `npm run typecheck`、`npm run build`。
 - 2026-03-29: 完成 M2 应用基础设施，建立路由入口、workbench 全局状态、HTTP/SSE 基础封装与 Drawer / Dialog / Popover 等 UI 原语；验证通过 `npm run typecheck`、`npm run build --workspace frontend`。
 - 2026-03-29: 完成 M3 会话域能力，接通 sessions list / create / patch / history / session switch，并在切换时重建 SSE 连接；验证通过 `npm run typecheck --workspace frontend`、`npm run build --workspace frontend`，以及对本地 `http://localhost:3001` 的 `GET /health`、`GET /api/sessions`、`GET /api/chat/history`、`POST /api/sessions`、`PATCH /api/sessions/:id` 烟测。
+- 2026-03-29: 完成 M4 聊天主链路，接通 `POST /api/chat/send`、`POST /api/chat/abort` 与 SSE `agent.event` / `message.delta` / `message.final` / `run.aborted` / `run.error` 的前端状态收敛；验证通过 `npm run typecheck`、`npm run build`，并对本地 `http://localhost:3001` 完成 `send -> delta/final` 与 `send -> abort -> run.aborted` 烟测。当前 mock runtime 未稳定提供 `run.error` 触发入口，因此该路径本轮以代码接线与状态收敛检查为主。

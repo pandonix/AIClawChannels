@@ -1,21 +1,35 @@
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import type { ActiveRunStatus } from "../../features/workbench/workbench-state";
 import { Button } from "../ui/button";
 
 interface ComposerProps {
+  activeRunStatus: ActiveRunStatus;
   draft: string;
   canSend: boolean;
   canStop: boolean;
   onDraftChange: (value: string) => void;
+  onSend: () => void;
+  onStop: () => void;
 }
 
 export function Composer({
+  activeRunStatus,
   draft,
   canSend,
   canStop,
   onDraftChange,
+  onSend,
+  onStop,
 }: ComposerProps) {
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     onDraftChange(event.target.value);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && canSend) {
+      event.preventDefault();
+      onSend();
+    }
   };
 
   return (
@@ -30,15 +44,18 @@ export function Composer({
               className="min-h-28 w-full resize-none rounded-[22px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-7 text-ink-100 outline-none placeholder:text-ink-300/70"
               value={draft}
               onChange={handleChange}
-              placeholder="M4 将在这里接入真实 send / abort 交互。"
+              onKeyDown={handleKeyDown}
+              placeholder="输入消息，使用 Ctrl/Cmd + Enter 发送。"
               aria-label="Composer draft"
             />
           </label>
           <div className="flex items-center gap-3">
-            <Button variant="warning" disabled={!canStop}>
+            <Button variant="warning" disabled={!canStop} onClick={onStop}>
               Stop
             </Button>
-            <Button disabled={!canSend}>Send</Button>
+            <Button disabled={!canSend} onClick={onSend}>
+              Send
+            </Button>
           </div>
         </div>
 
@@ -47,7 +64,8 @@ export function Composer({
             Interaction Status
           </p>
           <p className="mt-3 text-sm leading-7 text-ink-200">
-            当前只开放可编辑草稿与 UI 骨架，不制造“按钮已可用但后端未接通”的假象。实际发送、停止与流式收敛会在 M4 对齐 contract 后启用。
+            当前 run 状态为 <span className="font-mono uppercase">{activeRunStatus}</span>。
+            发送、停止和流式收敛已经接入 contract；若 SSE 或 run 失败，错误会以局部 notice 形式留在消息流里。
           </p>
         </div>
       </div>
