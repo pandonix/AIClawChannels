@@ -1,0 +1,105 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Sora", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-canvas-950: var(--canvas-950);
+  --color-canvas-900: var(--canvas-900);
+  --color-canvas-850: var(--canvas-850);
+  --color-canvas-800: var(--canvas-800);
+  --color-line-soft: var(--line-soft);
+
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-success-400: var(--success-400);
+  --color-warning-400: var(--warning-400);
+  --color-danger-400: var(--danger-400);
+
+  --shadow-workbench: 0 42px 140px rgba(2, 9, 16, 0.52);
+}
+
+:root {
+  color-scheme: dark;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --canvas-950: #04111b;
+  --canvas-900: rgba(8, 19, 30, 0.9);
+  --canvas-850: #102536;
+  --canvas-800: #173246;
+  --line-soft: rgba(188, 220, 255, 0.12);
+
+  --ink-50: #f2f9ff;
+  --ink-100: #d5e5f3;
+  --ink-200: #aabccd;
+  --ink-300: #7790a4;
+
+  --accent-300: #8ef2ff;
+  --accent-400: #1dc6ff;
+  --success-400: #67efc4;
+  --warning-400: #ffb26f;
+  --danger-400: #ff7c8e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--canvas-950);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink-50);
+  background-color: var(--canvas-950);
+  background-image:
+    radial-gradient(circle at top left, rgba(29, 198, 255, 0.18), transparent 26%),
+    radial-gradient(circle at 82% 18%, rgba(103, 239, 196, 0.12), transparent 20%),
+    linear-gradient(180deg, rgba(9, 20, 32, 0.3) 0%, rgba(4, 12, 20, 0.92) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at center, black 38%, transparent 95%);
+  opacity: 0.28;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+textarea {
+  field-sizing: content;
+}
+
+::selection {
+  color: var(--canvas-950);
+  background: var(--accent-300);
+}

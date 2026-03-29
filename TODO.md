@@ -4,8 +4,8 @@
 
 ## 当前事实
 
-- 当前仓库没有 `frontend/` 工作区，前端需要从 0 开始搭建。
-- 根目录 `package.json` 仍保留 `frontend` workspace 与相关脚本，实际不可直接运行。
+- 当前仓库已建立 `frontend/` 工作区，并完成 M1 工程初始化基线。
+- 根目录 `package.json` 的 frontend workspace 脚本已可运行，当前 `npm run build`、`npm run typecheck` 可通过。
 - 当前前端只面向 desktop Web。
 - 当前前端只对接 backend 暴露的 HTTP/SSE contract，不直接访问 Gateway。
 - `e2e/` 里的场景可作为交互目标参考，但不能直接视为现成实现。
@@ -26,10 +26,10 @@
 
 ### M1 前端工程初始化
 
-- [ ] 创建 `frontend/` 工作区，完成 React + TypeScript + Vite 基础脚手架。
-- [ ] 接入 Tailwind CSS，并建立与设计方案一致的语义化颜色、字体、间距 token 基线。
-- [ ] 修复根工作区脚本与 `frontend` 包脚本，确保根目录 `npm run build`、`npm run typecheck` 具备可继续演进的前提。
-- [ ] 打通共享 TypeScript 配置与 `@contracts` 类型引用，建立 API Base URL 与运行环境配置。
+- [x] 创建 `frontend/` 工作区，完成 React + TypeScript + Vite 基础脚手架。
+- [x] 接入 Tailwind CSS，并建立与设计方案一致的语义化颜色、字体、间距 token 基线。
+- [x] 修复根工作区脚本与 `frontend` 包脚本，确保根目录 `npm run build`、`npm run typecheck` 具备可继续演进的前提。
+- [x] 打通共享 TypeScript 配置与 `@contracts` 类型引用，建立 API Base URL 与运行环境配置。
 
 ### M2 应用基础设施
 
@@ -81,3 +81,4 @@
 ## 进度记录
 
 - 2026-03-29: 初始化本 TODO，完成前端重建任务分解，并建立逐任务提交规则。
+- 2026-03-29: 完成 M1 前端工程初始化，新增 `frontend/` React + TypeScript + Vite 工作区，接入 Tailwind CSS、`@contracts` 类型与 `VITE_API_BASE_URL` 配置；验证通过 `npm run typecheck`、`npm run build`。
