@@ -1,3 +1,4 @@
+import type { ResourceStatus } from "../workbench-state";
 import type { SessionSummary } from "@contracts";
 import { Button } from "../../../components/ui/button";
 import {
@@ -9,8 +10,10 @@ import {
 import { cn } from "../../../lib/cn";
 
 interface SessionsSheetProps {
+  error: string | null;
   open: boolean;
   sessions: SessionSummary[];
+  status: ResourceStatus;
   selectedSessionId: string | null;
   onOpenChange: (open: boolean) => void;
   onCreateSession: () => void;
@@ -18,8 +21,10 @@ interface SessionsSheetProps {
 }
 
 export function SessionsSheet({
+  error,
   open,
   sessions,
+  status,
   selectedSessionId,
   onOpenChange,
   onCreateSession,
@@ -43,6 +48,18 @@ export function SessionsSheet({
         </div>
 
         <div className="mt-6 space-y-3">
+          {status === "loading" ? (
+            <div className="rounded-[24px] border border-white/10 bg-black/15 px-4 py-4 text-sm text-ink-200">
+              正在读取会话列表...
+            </div>
+          ) : null}
+
+          {status === "error" && error ? (
+            <div className="rounded-[24px] border border-danger-400/20 bg-danger-400/8 px-4 py-4 text-sm text-danger-400">
+              {error}
+            </div>
+          ) : null}
+
           {sessions.map((session) => {
             const selected = session.id === selectedSessionId;
 

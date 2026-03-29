@@ -20,6 +20,8 @@ interface WorkbenchContextValue {
 const WorkbenchContext = createContext<WorkbenchContextValue | null>(null);
 
 const initialPreview = getPreviewSessionData(defaultSessionId);
+const apiClient = createApiClient(env.apiBaseUrl);
+const streamClient = new ChatStreamClient(env.apiBaseUrl);
 
 export function WorkbenchProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(
@@ -38,10 +40,10 @@ export function WorkbenchProvider({ children }: PropsWithChildren) {
   return (
     <WorkbenchContext.Provider
       value={{
-        apiClient: createApiClient(env.apiBaseUrl),
+        apiClient,
         dispatch,
         state,
-        streamClient: new ChatStreamClient(env.apiBaseUrl),
+        streamClient,
       }}
     >
       {children}

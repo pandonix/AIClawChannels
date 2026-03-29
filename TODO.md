@@ -39,11 +39,11 @@
 
 ### M3 会话域能力
 
-- [ ] 实现会话列表读取与初始自动选中逻辑，对齐 `GET /api/sessions` 和“默认选中最新会话”规则。
-- [ ] 实现 Sessions Drawer，支持会话列表展示、当前选中态、摘要与更新时间展示。
-- [ ] 实现 New Session Modal，完成 `POST /api/sessions` 创建流程、创建态与失败反馈。
-- [ ] 实现会话切换流程：切换会话时联动历史消息拉取、旧 SSE 关闭与新 SSE 重建。
-- [ ] 实现 Session Settings Drawer 中的标题编辑与 `agentId` 编辑，对齐 `PATCH /api/sessions/:id`。
+- [x] 实现会话列表读取与初始自动选中逻辑，对齐 `GET /api/sessions` 和“默认选中最新会话”规则。
+- [x] 实现 Sessions Drawer，支持会话列表展示、当前选中态、摘要与更新时间展示。
+- [x] 实现 New Session Modal，完成 `POST /api/sessions` 创建流程、创建态与失败反馈。
+- [x] 实现会话切换流程：切换会话时联动历史消息拉取、旧 SSE 关闭与新 SSE 重建。
+- [x] 实现 Session Settings Drawer 中的标题编辑与 `agentId` 编辑，对齐 `PATCH /api/sessions/:id`。
 
 ### M4 聊天主链路
 
@@ -83,3 +83,4 @@
 - 2026-03-29: 初始化本 TODO，完成前端重建任务分解，并建立逐任务提交规则。
 - 2026-03-29: 完成 M1 前端工程初始化，新增 `frontend/` React + TypeScript + Vite 工作区，接入 Tailwind CSS、`@contracts` 类型与 `VITE_API_BASE_URL` 配置；验证通过 `npm run typecheck`、`npm run build`。
 - 2026-03-29: 完成 M2 应用基础设施，建立路由入口、workbench 全局状态、HTTP/SSE 基础封装与 Drawer / Dialog / Popover 等 UI 原语；验证通过 `npm run typecheck`、`npm run build --workspace frontend`。
+- 2026-03-29: 完成 M3 会话域能力，接通 sessions list / create / patch / history / session switch，并在切换时重建 SSE 连接；验证通过 `npm run typecheck --workspace frontend`、`npm run build --workspace frontend`，以及对本地 `http://localhost:3001` 的 `GET /health`、`GET /api/sessions`、`GET /api/chat/history`、`POST /api/sessions`、`PATCH /api/sessions/:id` 烟测。

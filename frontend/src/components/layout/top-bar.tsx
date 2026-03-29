@@ -13,7 +13,7 @@ const connectionTone: Record<ConnectionStatus, string> = {
 };
 
 interface TopBarProps {
-  currentSession: SessionSummary;
+  currentSession: SessionSummary | null;
   connectionStatus: ConnectionStatus;
   runId: string | null;
   onOpenSessions: () => void;
@@ -38,7 +38,7 @@ export function TopBar({
             {env.appName}
           </p>
           <h1 className="font-display text-2xl tracking-[-0.04em] text-ink-50 sm:text-[2.2rem]">
-            {currentSession.title}
+            {currentSession?.title ?? "No Session"}
           </h1>
         </div>
       </div>
@@ -64,7 +64,9 @@ export function TopBar({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ink-300">Session</dt>
-                <dd className="font-mono text-xs">{currentSession.id}</dd>
+                <dd className="font-mono text-xs">
+                  {currentSession?.id ?? "none"}
+                </dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ink-300">Run</dt>
@@ -82,7 +84,11 @@ export function TopBar({
           Route Ready
         </span>
 
-        <Button variant="secondary" onClick={onOpenSettings}>
+        <Button
+          variant="secondary"
+          onClick={onOpenSettings}
+          disabled={!currentSession}
+        >
           Settings
         </Button>
       </div>

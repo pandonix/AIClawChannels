@@ -53,6 +53,32 @@ interface CreateInitialWorkbenchStateArgs {
 
 export type WorkbenchAction =
   | {
+      type: "history/error";
+      error: string;
+    }
+  | {
+      type: "history/request";
+    }
+  | {
+      type: "history/success";
+      messages: ChatMessage[];
+    }
+  | {
+      type: "sessions/error";
+      error: string;
+    }
+  | {
+      type: "sessions/request";
+    }
+  | {
+      type: "sessions/success";
+      sessions: SessionSummary[];
+    }
+  | {
+      type: "sessions/upsert";
+      session: SessionSummary;
+    }
+  | {
       type: "composer/setDraft";
       draft: string;
     }
@@ -71,11 +97,7 @@ export type WorkbenchAction =
     }
   | {
       type: "session/select";
-      sessionId: string;
-      history: ChatMessage[];
-      agentEvents: AgentEvent[];
-      liveMessage: MessageDeltaEvent | null;
-      draft: string;
+      sessionId: string | null;
     }
   | {
       type: "ui/setSheet";
@@ -130,6 +152,95 @@ export function workbenchReducer(
   action: WorkbenchAction,
 ): WorkbenchState {
   switch (action.type) {
+    case "history/error":
+      return {
+        ...state,
+        history: {
+          ...state.history,
+          error: action.error,
+          status: "error",
+        },
+      };
+
+    case "history/request":
+      return {
+        ...state,
+        history: {
+          data: [],
+          error: null,
+          status: "loading",
+        },
+      };
+
+    case "history/success":
+      return {
+        ...state,
+        history: {
+          data: action.messages,
+          error: null,
+          status: action.messages.length > 0 ? "ready" : "empty",
+        },
+      };
+
+    case "sessions/error":
+      return {
+        ...state,
+        diagnostics: {
+          ...state.diagnostics,
+          lastError: action.error,
+        },
+        sessions: {
+          ...state.sessions,
+          error: action.error,
+          status: "error",
+        },
+      };
+
+    case "sessions/request":
+      return {
+        ...state,
+        sessions: {
+          ...state.sessions,
+          error: null,
+          status: "loading",
+        },
+      };
+
+    case "sessions/success":
+      return {
+        ...state,
+        sessions: {
+          data: action.sessions,
+          error: null,
+          status: action.sessions.length > 0 ? "ready" : "empty",
+        },
+      };
+
+    case "sessions/upsert": {
+      const existing = state.sessions.data.findIndex(
+        (session) => session.id === action.session.id,
+      );
+      const nextSessions =
+        existing >= 0
+          ? state.sessions.data.map((session) =>
+              session.id === action.session.id ? action.session : session,
+            )
+          : [action.session, ...state.sessions.data];
+
+      nextSessions.sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      );
+
+      return {
+        ...state,
+        sessions: {
+          data: nextSessions,
+          error: null,
+          status: "ready",
+        },
+      };
+    }
+
     case "composer/setDraft":
       return {
         ...state,
@@ -164,21 +275,21 @@ export function workbenchReducer(
       return {
         ...state,
         activeRun: {
-          runId: action.liveMessage?.runId ?? null,
-          status: action.liveMessage ? "active" : "idle",
+          runId: null,
+          status: "idle",
         },
-        agentEvents: action.agentEvents,
+        agentEvents: [],
         diagnostics: {
           ...state.diagnostics,
           sessionId: action.sessionId,
         },
-        draft: action.draft,
+        draft: "",
         history: {
-          data: action.history,
+          data: [],
           error: null,
-          status: action.history.length > 0 ? "ready" : "empty",
+          status: action.sessionId ? "loading" : "empty",
         },
-        liveMessage: action.liveMessage,
+        liveMessage: null,
         selectedSessionId: action.sessionId,
       };
 
