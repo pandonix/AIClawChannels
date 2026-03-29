@@ -11,7 +11,7 @@ import type {
   SendChatRequest,
   SendChatResponse,
 } from "@contracts";
-import { useEffect } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { ChatCanvas } from "../../components/layout/chat-canvas";
 import { Composer } from "../../components/layout/composer";
 import { TopBar } from "../../components/layout/top-bar";
@@ -81,9 +81,19 @@ function handleStreamEvent(event: AnySseEvent, dispatch: ReturnType<typeof useWo
 
 export function WorkbenchPage() {
   const { apiClient, dispatch, state, streamClient } = useWorkbench();
+  const reloadGenerationRef = useRef(0);
   const currentSession =
     state.sessions.data.find((session) => session.id === state.selectedSessionId) ??
     null;
+
+  const loadHistoryForSession = useEffectEvent(async (sessionId: string) => {
+    const response = await apiClient.get<ChatHistoryResponse>(
+      `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`,
+    );
+
+    dispatch({ type: "history/success", messages: response.messages });
+    return response.messages;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -153,6 +163,7 @@ export function WorkbenchPage() {
           return;
         }
 
+        dispatch({ type: "diagnostics/setError", error: null });
         dispatch({ type: "connection/setStatus", status: "open" });
       },
       onEvent: (event) => {
@@ -164,17 +175,13 @@ export function WorkbenchPage() {
       },
     });
 
-    const loadHistory = async () => {
+    const loadSelectedSessionHistory = async () => {
       try {
-        const response = await apiClient.get<ChatHistoryResponse>(
-          `/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`,
-        );
-
         if (cancelled) {
           return;
         }
 
-        dispatch({ type: "history/success", messages: response.messages });
+        await loadHistoryForSession(sessionId);
       } catch (error) {
         if (cancelled) {
           return;
@@ -187,7 +194,7 @@ export function WorkbenchPage() {
       }
     };
 
-    void loadHistory();
+    void loadSelectedSessionHistory();
 
     return () => {
       cancelled = true;
@@ -195,6 +202,59 @@ export function WorkbenchPage() {
       dispatch({ type: "connection/setStatus", status: "closed" });
     };
   }, [apiClient, dispatch, state.selectedSessionId, streamClient]);
+
+  useEffect(() => {
+  if (!state.selectedSessionId || !state.activeRun.runId) {
+      return;
+    }
+
+    const runId = state.activeRun.runId;
+    const generation = ++reloadGenerationRef.current;
+    const shouldBackfill =
+      state.connectionStatus === "reconnecting" ||
+      state.activeRun.status !== "idle";
+
+    if (!shouldBackfill) {
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      if (reloadGenerationRef.current !== generation) {
+        return;
+      }
+
+      try {
+        const messages = await loadHistoryForSession(state.selectedSessionId!);
+        const latestAssistantMessage = [...messages]
+          .reverse()
+          .find((message) => message.role === "assistant");
+
+        if (latestAssistantMessage) {
+          dispatch({
+            type: "run/final",
+            message: latestAssistantMessage,
+            runId,
+          });
+        }
+      } catch (error) {
+        dispatch({
+          type: "diagnostics/setError",
+          error: `History backfill failed: ${toErrorMessage(error)}`,
+        });
+      }
+    }, 4500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    dispatch,
+    state.activeRun.runId,
+    state.activeRun.status,
+    state.connectionStatus,
+    state.liveMessage,
+    state.selectedSessionId,
+  ]);
 
   const handleSelectSession = (sessionId: string) => {
     dispatch({
@@ -336,6 +396,7 @@ export function WorkbenchPage() {
         <TopBar
           currentSession={currentSession}
           connectionStatus={state.connectionStatus}
+          lastError={state.diagnostics.lastError}
           runId={state.activeRun.runId}
           onOpenSessions={() =>
             dispatch({ type: "ui/setSheet", sheet: "sessions", open: true })

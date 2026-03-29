@@ -58,10 +58,10 @@
 
 ### M5 SSE 稳定性与诊断
 
-- [ ] 实现 SSE 连接状态展示：connecting、open、reconnecting、closed、error。
-- [ ] 实现 SSE 断线自动重连，并确保重连后仍能继续接收后续 run 事件。
-- [ ] 实现“delta 已到达但 final 丢失”场景的 history 补拉兜底，确保 live 状态最终收敛。
-- [ ] 实现连接诊断浮层，展示最近一次错误、当前 sessionId、当前 runId 与连接状态。
+- [x] 实现 SSE 连接状态展示：connecting、open、reconnecting、closed、error。
+- [x] 实现 SSE 断线自动重连，并确保重连后仍能继续接收后续 run 事件。
+- [x] 实现“delta 已到达但 final 丢失”场景的 history 补拉兜底，确保 live 状态最终收敛。
+- [x] 实现连接诊断浮层，展示最近一次错误、当前 sessionId、当前 runId 与连接状态。
 
 ### M6 视觉收口与验证
 
@@ -85,3 +85,4 @@
 - 2026-03-29: 完成 M2 应用基础设施，建立路由入口、workbench 全局状态、HTTP/SSE 基础封装与 Drawer / Dialog / Popover 等 UI 原语；验证通过 `npm run typecheck`、`npm run build --workspace frontend`。
 - 2026-03-29: 完成 M3 会话域能力，接通 sessions list / create / patch / history / session switch，并在切换时重建 SSE 连接；验证通过 `npm run typecheck --workspace frontend`、`npm run build --workspace frontend`，以及对本地 `http://localhost:3001` 的 `GET /health`、`GET /api/sessions`、`GET /api/chat/history`、`POST /api/sessions`、`PATCH /api/sessions/:id` 烟测。
 - 2026-03-29: 完成 M4 聊天主链路，接通 `POST /api/chat/send`、`POST /api/chat/abort` 与 SSE `agent.event` / `message.delta` / `message.final` / `run.aborted` / `run.error` 的前端状态收敛；验证通过 `npm run typecheck`、`npm run build`，并对本地 `http://localhost:3001` 完成 `send -> delta/final` 与 `send -> abort -> run.aborted` 烟测。当前 mock runtime 未稳定提供 `run.error` 触发入口，因此该路径本轮以代码接线与状态收敛检查为主。
+- 2026-03-29: 完成 M5 SSE 稳定性与诊断，补齐连接状态展示、自动重连后的 UI 收敛、history backfill 兜底与 diagnostics 浮层错误信息；验证通过 `npm run typecheck`、`npm run build`，以及基于 Playwright 的 `SSE disconnect -> reconnect -> open` 浏览器烟测和“run 中途断线后通过 history backfill 收敛到最终 assistant 消息”的浏览器烟测。

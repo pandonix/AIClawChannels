@@ -1,5 +1,4 @@
 import { createContext, useContext, useReducer, type Dispatch, type PropsWithChildren } from "react";
-import { defaultSessionId, getPreviewSessionData, previewSessions } from "../../app/workbench-seed";
 import { env } from "../../config/env";
 import { createApiClient } from "../../lib/http/client";
 import { ChatStreamClient } from "../../lib/sse/chat-stream";
@@ -19,7 +18,6 @@ interface WorkbenchContextValue {
 
 const WorkbenchContext = createContext<WorkbenchContextValue | null>(null);
 
-const initialPreview = getPreviewSessionData(defaultSessionId);
 const apiClient = createApiClient(env.apiBaseUrl);
 const streamClient = new ChatStreamClient(env.apiBaseUrl);
 
@@ -28,12 +26,12 @@ export function WorkbenchProvider({ children }: PropsWithChildren) {
     workbenchReducer,
     createInitialWorkbenchState({
       apiBaseUrl: env.apiBaseUrl,
-      sessions: previewSessions,
-      selectedSessionId: defaultSessionId,
-      history: initialPreview.history,
-      agentEvents: initialPreview.agentEvents,
-      liveMessage: initialPreview.liveMessage,
-      draft: initialPreview.sendRequest.message,
+      sessions: [],
+      selectedSessionId: null,
+      history: [],
+      agentEvents: [],
+      liveMessage: null,
+      draft: "",
     }),
   );
 

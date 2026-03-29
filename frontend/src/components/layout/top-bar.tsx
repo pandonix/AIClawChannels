@@ -15,6 +15,7 @@ const connectionTone: Record<ConnectionStatus, string> = {
 interface TopBarProps {
   currentSession: SessionSummary | null;
   connectionStatus: ConnectionStatus;
+  lastError: string | null;
   runId: string | null;
   onOpenSessions: () => void;
   onOpenSettings: () => void;
@@ -23,6 +24,7 @@ interface TopBarProps {
 export function TopBar({
   currentSession,
   connectionStatus,
+  lastError,
   runId,
   onOpenSessions,
   onOpenSettings,
@@ -75,6 +77,12 @@ export function TopBar({
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ink-300">API Base</dt>
                 <dd className="font-mono text-xs">{env.apiBaseUrl}</dd>
+              </div>
+              <div className="border-t border-white/8 pt-3">
+                <dt className="mb-2 text-ink-300">Last Error</dt>
+                <dd className="text-sm leading-6 text-ink-100">
+                  {lastError ?? "none"}
+                </dd>
               </div>
             </dl>
           </PopoverContent>
