@@ -1,125 +1,168 @@
 # AIClawChannels
 
-基于 OpenClaw Gateway 构建的自定义 Web Channels 项目。
+基于 OpenClaw Gateway 的自定义 Web Channel backend。
 
-## 快速开始
+当前仓库已经删除旧前端实现，现阶段应把 backend、共享 contract 和本文档视为项目基线；后续新前端需要围绕它们重新搭建。
 
-参见 [Quickstart](docs/quickstart.md)。
+## 当前项目范围
 
-## 架构概览
+当前保留并可作为事实来源的部分只有：
+
+- `backend/`: Fastify 服务，负责会话 API、聊天 API、SSE、Gateway 接线和 mock runtime
+- `packages/contracts/`: 前后端共享 DTO 与 SSE 事件类型
+- `docs/api-contract.md`: 现行 HTTP/SSE 契约
+- `e2e/`: 旧 MVP 的交互目标记录；因为前端已移除，当前不能直接作为可运行验证
+
+已经不应再作为当前项目依据的内容：
+
+- 旧前端页面结构与交互实现
+- 已删除的设计/重构文档
+
+## 架构边界
 
 ```text
-Frontend Web UI <-> Custom Backend (HTTP/SSE) <-> OpenClaw Gateway (WS)
+Future Frontend Web UI <-> Custom Backend (HTTP/SSE) <-> OpenClaw Gateway (WS)
 ```
 
-约束：
+约束保持不变：
 
 - 前端不直接访问 Gateway
-- 后端统一处理 Gateway 握手、认证、重连和事件分发
-- 前端只消费自定义业务 API
+- backend 统一处理 Gateway 握手、鉴权、重连、事件映射和 sessionKey 管理
+- 新前端只面向 backend 的业务 API 和 SSE contract 开发
 
-## 目录结构
+## 当前目录结构
 
 ```text
 .
 ├── backend/
 │   └── src/
-│       ├── app.ts                  # 应用入口，runtime 装配
-│       ├── chat/                   # 聊天服务层
+│       ├── app.ts                  # Fastify 入口与 runtime 装配
+│       ├── chat/                   # 聊天服务
 │       ├── config/                 # 环境变量加载
-│       ├── event-bus/              # SSE 事件总线
-│       ├── gateway/                # Gateway WS 客户端与重连管理
-│       ├── mock/                   # Mock Gateway（本地开发用）
+│       ├── event-bus/              # SSE 事件订阅与 Gateway 事件映射
+│       ├── gateway/                # Gateway WS 客户端、鉴权、重连
+│       ├── mock/                   # 本地 mock gateway
 │       ├── routes/                 # HTTP/SSE 路由
-│       ├── runtime/                # BackendRuntime 接口定义
-│       └── sessions/               # 会话服务层
+│       ├── runtime/                # mock / gateway runtime 适配层
+│       └── sessions/               # 会话服务
 ├── docs/
-│   ├── api-contract.md             # API/SSE 契约
-│   └── openclaw-web-channel-design.md
-├── frontend/
-│   └── src/
-│       ├── api/                    # HTTP API 客户端
-│       ├── components/             # 聊天 UI 组件
-│       ├── hooks/                  # SSE 状态管理
-│       ├── lib/sse/                # EventSource 封装
-│       └── pages/                  # 页面
+│   └── api-contract.md             # 当前 API / SSE 契约
+├── e2e/                            # 旧前端 MVP 目标用例，当前缺少运行前提
 ├── packages/
-│   └── contracts/                  # 共享 DTO 与 SSE 事件类型
-└── todo.md
+│   └── contracts/
+│       └── src/index.ts            # DTO 与 SSE 类型
+├── package.json                    # 根工作区配置，仍残留 frontend 相关项
+└── tsconfig.base.json              # @contracts 路径映射
 ```
 
-## 本地启动
+## 当前后端能力
 
-1. 安装依赖
+已实现并可供新前端直接对接的能力：
+
+- `GET /api/sessions`
+- `POST /api/sessions`
+- `PATCH /api/sessions/:id`
+- `GET /api/chat/history`
+- `POST /api/chat/send`
+- `POST /api/chat/abort`
+- `GET /api/chat/stream`
+- `GET /health`
+
+SSE 事件：
+
+- `agent.event`
+- `message.delta`
+- `message.final`
+- `run.aborted`
+- `run.error`
+
+开发态辅助接口：
+
+- `POST /dev/sse-disconnect`
+
+具体字段、错误响应和运行语义见 [docs/api-contract.md](docs/api-contract.md)。
+
+## 本地运行 backend
+
+由于当前仓库已经删除 `frontend/`，根目录工作区脚本和 `package.json` 里仍有部分 frontend 残留配置，不应再把根目录脚本当作当前可靠入口。
+
+推荐直接在 `backend/` 目录运行：
 
 ```bash
+cd backend
 npm install
+npm run dev
 ```
 
-2. 启动 backend
+默认监听：
 
-```bash
-npm run dev:backend
-```
-
-3. 启动 frontend
-
-```bash
-npm run dev:frontend
-```
-
-默认配置下：
-
-- frontend: `http://localhost:5173`
 - backend: `http://localhost:3001`
-- backend 以 `MOCK_GATEWAY=true` 运行，使用内置 mock runtime
 
-如需连接真实 Gateway：
+健康检查：
 
 ```bash
+curl http://localhost:3001/health
+```
+
+## 连接模式
+
+### Mock mode
+
+默认配置：
+
+```bash
+cd backend
+MOCK_GATEWAY=true npm run dev
+```
+
+特点：
+
+- 不连接真实 Gateway
+- 启动后可直接使用会话、聊天和 SSE
+- 默认包含一个种子会话，便于新前端先做联调
+
+### Gateway mode
+
+连接真实 Gateway：
+
+```bash
+cd backend
 MOCK_GATEWAY=false \
 GATEWAY_OPERATOR_TOKEN=your_gateway_token \
-npm run dev:backend
+npm run dev
 ```
 
-如果本地 Gateway 开启了 token 鉴权，`GATEWAY_OPERATOR_TOKEN` 必填。
+如果你的 Gateway 使用 password 或 device token，也可以补充对应环境变量。
 
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `MOCK_GATEWAY` | `true` | `false` 时切换到真实 Gateway runtime |
-| `GATEWAY_WS_URL` | `ws://127.0.0.1:18789` | OpenClaw Gateway WebSocket 地址 |
-| `GATEWAY_OPERATOR_TOKEN` | — | operator token 鉴权 |
-| `GATEWAY_OPERATOR_PASSWORD` | — | operator password 鉴权 |
-| `GATEWAY_DEVICE_TOKEN` | — | device token（可由 Gateway 下发后自动缓存） |
-| `GATEWAY_SCOPES` | `operator.read,operator.write` | 请求的权限范围 |
-| `GATEWAY_TLS_FINGERPRINT` | — | wss:// 时的 TLS 证书指纹校验 |
-| `GATEWAY_DEVICE_IDENTITY_PATH` | — | device 密钥对持久化路径 |
+| `NODE_ENV` | `development` | 非 production 时会注册开发态接口 |
 | `PORT` | `3001` | backend 监听端口 |
+| `MOCK_GATEWAY` | `true` | 是否启用 mock runtime |
+| `GATEWAY_WS_URL` | `ws://127.0.0.1:18789` | Gateway WebSocket 地址 |
+| `GATEWAY_OPERATOR_TOKEN` | - | Gateway operator token |
+| `GATEWAY_OPERATOR_PASSWORD` | - | Gateway operator password |
+| `GATEWAY_DEVICE_TOKEN` | - | Gateway device token |
+| `GATEWAY_SCOPES` | `operator.read,operator.write` | Gateway scopes，逗号分隔 |
+| `GATEWAY_TLS_FINGERPRINT` | - | `wss://` 证书指纹校验 |
+| `GATEWAY_DEVICE_IDENTITY_PATH` | - | device 身份文件持久化路径 |
 
-## 当前状态
+## 现阶段约束
 
-MVP 核心链路已完成联调：
+- 当前没有可运行的前端实现；新前端需要从零开始重建
+- `packages/contracts` 目前只是源码目录，不是独立发布包
+- session 列表、会话 patch、run 幂等记录等都仍以进程内内存状态为主
+- `gateway` 模式下的 `POST /api/sessions` 目前是 backend 本地创建会话元数据，不等同于持久化创建远端会话
+- `agentId` 已进合同，但暂未形成完整业务语义
+- `e2e/` 用例保留的是最早 MVP 交互目标，不代表当前仓库已经具备可执行的前端
 
-- mock runtime：
-- 会话列表加载、创建、重命名
-- 聊天历史加载、发送消息
-- SSE 流式事件：`agent.event`、`message.delta`、`message.final`
-- SSE 断线重连，重连后继续接收后续事件
-- 前端在重连恢复后补拉 history，兜底 `message.final` 丢失场景
-- 停止操作触发 `run.aborted`
+## 下一步前端重建建议
 
-- 真实 Gateway（2026-03-11，本地 OpenClaw Gateway）：
-- `MOCK_GATEWAY=false` 时可完成真实握手、鉴权与会话水合
-- `GET /api/sessions`、`GET /api/chat/history`、`POST /api/chat/send`、`POST /api/chat/abort` 已打通
-- SSE 已确认收到 `agent.event`、`message.final`、`run.aborted`
-- 针对 Gateway `chat state=final` 不携带正文的情况，后端已在 final 到达时回补 `chat.history` 获取最终消息文本
+如果接下来要重建前端，当前最稳的输入顺序是：
 
-当前剩余方向主要是持久化、认证和部署样板，不再是 Gateway runtime 接线。
-
-## 契约与文档
-
-- 设计方案：[docs/openclaw-web-channel-design.md](docs/openclaw-web-channel-design.md)
-- API 契约：[docs/api-contract.md](docs/api-contract.md)
-- 任务拆解：[todo.md](todo.md)
+1. 以 [docs/api-contract.md](docs/api-contract.md) 为接口合同。
+2. 以 [packages/contracts/src/index.ts](packages/contracts/src/index.ts) 为类型来源。
+3. 以 [backend/src/routes/chat.ts](backend/src/routes/chat.ts)、[backend/src/routes/sessions.ts](backend/src/routes/sessions.ts)、[backend/src/routes/stream.ts](backend/src/routes/stream.ts) 为实际行为基准。
+4. 以 `e2e/` 中的旧场景作为交互目标参考，而不是当前实现现状。
